@@ -1,0 +1,183 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
+/* ---------- Saajha tokens (DESIGN.md §2) ---------- */
+:root {
+  --ink: #14162b;
+  --paper: #faf8f3;
+  --surface: #ffffff;
+  --line: #e7e3da;
+  --muted-ink: #5f6379; /* DESIGN.md --muted, nudged darker for AA on --paper */
+  --indigo: #2b3a8c;
+  --marigold: #f2a531;
+  --success: #1f8a5b;
+  --warning: #c77b12;
+  --danger: #c2412d;
+
+  /* text-safe variants of status colors (AA on light tints) */
+  --success-ink: #17704a;
+  --warning-ink: #8a5208;
+  --danger-ink: #a8361f;
+  --indigo-soft: #eceefa;
+  --marigold-soft: #fdf1dc;
+  --success-soft: #e5f4ec;
+  --warning-soft: #fbf0de;
+  --danger-soft: #fbe9e5;
+
+  --shadow-card: 0 1px 2px rgba(20, 22, 43, 0.04), 0 8px 24px rgba(20, 22, 43, 0.06);
+  --shadow-card-hover: 0 2px 4px rgba(20, 22, 43, 0.06), 0 14px 32px rgba(20, 22, 43, 0.1);
+
+  /* shadcn mapping */
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+  --primary: var(--indigo);
+  --primary-foreground: #ffffff;
+  --secondary: var(--indigo-soft);
+  --secondary-foreground: var(--indigo);
+  --muted: #f1eee6;
+  --muted-foreground: var(--muted-ink);
+  --accent: var(--marigold-soft);
+  --accent-foreground: var(--ink);
+  --destructive: var(--danger);
+  --border: var(--line);
+  --input: var(--line);
+  --ring: var(--indigo);
+  --radius: 0.625rem; /* 10px buttons + inputs; cards use rounded-2xl (16px) */
+}
+
+[data-theme="dark"] {
+  --ink: #ecedf5;
+  --paper: #0e1020;
+  --surface: #161936;
+  --line: #272b4d;
+  --muted-ink: #9a9ebb;
+  --indigo: #7c8cf0;
+  --marigold: #f5b54f;
+  --success: #3cc38a;
+  --warning: #e6a23c;
+  --danger: #ef6a55;
+
+  --success-ink: #3cc38a;
+  --warning-ink: #e6a23c;
+  --danger-ink: #ef6a55;
+  --indigo-soft: #1f2450;
+  --marigold-soft: #2e2618;
+  --success-soft: #12302a;
+  --warning-soft: #2f2615;
+  --danger-soft: #35191c;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+  --shadow-card-hover: 0 2px 4px rgba(0, 0, 0, 0.35), 0 14px 32px rgba(0, 0, 0, 0.35);
+
+  --primary-foreground: #0e1020;
+  --muted: #1c2042;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains);
+  --font-heading: var(--font-fraunces);
+  --font-display: var(--font-fraunces);
+
+  --color-ink: var(--ink);
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-line: var(--line);
+  --color-indigo: var(--indigo);
+  --color-indigo-soft: var(--indigo-soft);
+  --color-marigold: var(--marigold);
+  --color-marigold-soft: var(--marigold-soft);
+  --color-success: var(--success);
+  --color-success-ink: var(--success-ink);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-ink: var(--warning-ink);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-ink: var(--danger-ink);
+  --color-danger-soft: var(--danger-soft);
+
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.2);
+  --radius-2xl: 1rem;
+  --radius-3xl: 1.5rem;
+
+  --shadow-card: var(--shadow-card);
+  --shadow-card-hover: var(--shadow-card-hover);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    @apply font-sans;
+    color-scheme: light;
+  }
+  [data-theme="dark"] {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-background text-foreground;
+    line-height: 1.5;
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+  /* DESIGN.md §7: indigo focus ring, 2px offset */
+  :where(a, button, input, select, textarea, [role="tab"], [role="menuitem"], [tabindex]):focus-visible {
+    outline: 2px solid var(--indigo);
+    outline-offset: 2px;
+  }
+}
+
+@utility dot-grid {
+  background-image: radial-gradient(color-mix(in oklab, var(--ink) 9%, transparent) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+@utility card-lift {
+  box-shadow: var(--shadow-card);
+  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-card-hover);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &:hover {
+      transform: none;
+    }
+  }
+}
