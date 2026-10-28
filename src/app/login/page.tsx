@@ -13,11 +13,11 @@ export default async function LoginPage() {
   return (
     <main className="grid flex-1 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
       {/* Brand panel */}
-      <section className="relative flex flex-col justify-between gap-8 overflow-hidden bg-indigo px-4 py-6 text-primary-foreground sm:px-8 lg:px-12 lg:py-10">
+      <section className="relative flex flex-col justify-between gap-8 overflow-hidden bg-indigo px-4 py-6 text-primary-foreground sm:px-8 dark:bg-indigo-soft dark:text-foreground lg:px-12 lg:py-10">
         <div className="dot-grid pointer-events-none absolute inset-0 opacity-40 invert dark:invert-0" aria-hidden="true" />
         <div className="relative flex items-center justify-between">
           <Link href="/" aria-label="Saajha home" className="rounded-md">
-            <Logo wordmarkClassName="text-primary-foreground" />
+            <Logo tile wordmarkClassName="text-primary-foreground dark:text-foreground" />
           </Link>
         </div>
         <div className="relative hidden lg:block">
