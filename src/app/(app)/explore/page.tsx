@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
+import { Explorer } from "@/components/explore/explorer";
 
 export const metadata: Metadata = { title: "Explore" };
 
 export default function ExplorePage() {
-  return <h1 className="text-3xl sm:text-4xl">Explore</h1>;
+  return <Explorer />;
 }
