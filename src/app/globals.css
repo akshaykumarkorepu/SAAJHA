@@ -3,21 +3,27 @@
 @import "shadcn/tailwind.css";
 
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+/* Motion only when JS has initialised and the user hasn't asked for less (see RevealObserver). */
+@custom-variant motion-on (&:where([data-motion] *));
 
 /* ---------- Saajha tokens (DESIGN.md §2) ---------- */
 :root {
   --ink: #14162b;
   --paper: #faf8f3;
   --surface: #ffffff;
+  --surface-2: #f4f1ea;
   --line: #e7e3da;
-  --muted-ink: #5f6379; /* DESIGN.md --muted, nudged darker for AA on --paper */
+  --line-strong: #d6d0c3;
+  --muted-ink: #5f6379; /* DESIGN.md --muted, nudged darker for AA on tinted surfaces */
+  --faint-ink: #7b7f93; /* decorative / large text only */
   --indigo: #2b3a8c;
+  --indigo-bright: #3f51b5;
   --marigold: #f2a531;
   --success: #1f8a5b;
   --warning: #c77b12;
   --danger: #c2412d;
 
-  /* text-safe variants of status colors (AA on light tints) */
+  /* text-safe variants of status colours (AA on their soft tints) */
   --success-ink: #17704a;
   --warning-ink: #8a5208;
   --danger-ink: #a8361f;
@@ -27,8 +33,22 @@
   --warning-soft: #fbf0de;
   --danger-soft: #fbe9e5;
 
+  /* atmosphere */
+  --glow-indigo: rgba(43, 58, 140, 0.1);
+  --glow-marigold: rgba(242, 165, 49, 0.16);
+  --dot: rgba(20, 22, 43, 0.09);
+
   --shadow-card: 0 1px 2px rgba(20, 22, 43, 0.04), 0 8px 24px rgba(20, 22, 43, 0.06);
-  --shadow-card-hover: 0 2px 4px rgba(20, 22, 43, 0.06), 0 14px 32px rgba(20, 22, 43, 0.1);
+  --shadow-card-hover: 0 2px 4px rgba(20, 22, 43, 0.05), 0 16px 36px -8px rgba(20, 22, 43, 0.14);
+  --shadow-pop: 0 12px 40px -12px rgba(20, 22, 43, 0.25);
+
+  /* motion (mirrors src/lib/motion.ts) */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 160ms;
+  --dur-base: 240ms;
+  --dur-enter: 480ms;
+  --dur-hero: 760ms;
 
   /* shadcn mapping */
   --background: var(--paper);
@@ -47,37 +67,48 @@
   --accent-foreground: var(--ink);
   --destructive: var(--danger);
   --border: var(--line);
-  --input: var(--line);
+  --input: var(--line-strong);
   --ring: var(--indigo);
   --radius: 0.625rem; /* 10px buttons + inputs; cards use rounded-2xl (16px) */
 }
 
 [data-theme="dark"] {
-  --ink: #ecedf5;
-  --paper: #0e1020;
-  --surface: #161936;
-  --line: #272b4d;
-  --muted-ink: #9a9ebb;
-  --indigo: #7c8cf0;
-  --marigold: #f5b54f;
+  --ink: #f3f4fa;
+  --paper: #0b0d18;
+  --surface: #111426;
+  --surface-2: #171b31;
+  --line: rgba(129, 140, 248, 0.14);
+  --line-strong: rgba(129, 140, 248, 0.26);
+  --muted-ink: #a1a7bf;
+  --faint-ink: #7d85a1;
+  --indigo: #818cf8;
+  --indigo-bright: #a5b4fc;
+  --marigold: #f5b942;
   --success: #3cc38a;
   --warning: #e6a23c;
-  --danger: #ef6a55;
+  --danger: #f07a66;
 
-  --success-ink: #3cc38a;
-  --warning-ink: #e6a23c;
-  --danger-ink: #ef6a55;
-  --indigo-soft: #1f2450;
-  --marigold-soft: #2e2618;
-  --success-soft: #12302a;
-  --warning-soft: #2f2615;
-  --danger-soft: #35191c;
+  --success-ink: #4fd09a;
+  --warning-ink: #f0b456;
+  --danger-ink: #f48a78;
+  --indigo-soft: #1c2046;
+  --marigold-soft: #2a2316;
+  --success-soft: #10291f;
+  --warning-soft: #2a2114;
+  --danger-soft: #2f1719;
 
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
-  --shadow-card-hover: 0 2px 4px rgba(0, 0, 0, 0.35), 0 14px 32px rgba(0, 0, 0, 0.35);
+  --glow-indigo: rgba(129, 140, 248, 0.16);
+  --glow-marigold: rgba(245, 185, 66, 0.1);
+  --dot: rgba(165, 180, 252, 0.09);
 
-  --primary-foreground: #0e1020;
-  --muted: #1c2042;
+  --shadow-card: inset 0 1px 0 rgba(255, 255, 255, 0.035), 0 1px 2px rgba(0, 0, 0, 0.35),
+    0 12px 32px -12px rgba(0, 0, 0, 0.55);
+  --shadow-card-hover: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 2px 4px rgba(0, 0, 0, 0.35),
+    0 20px 44px -12px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(129, 140, 248, 0.12);
+  --shadow-pop: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 24px 60px -16px rgba(0, 0, 0, 0.7);
+
+  --primary-foreground: #0b0d18;
+  --muted: #191d36;
 }
 
 @theme inline {
@@ -91,8 +122,12 @@
   --color-ink: var(--ink);
   --color-paper: var(--paper);
   --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
   --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-faint: var(--faint-ink);
   --color-indigo: var(--indigo);
+  --color-indigo-bright: var(--indigo-bright);
   --color-indigo-soft: var(--indigo-soft);
   --color-marigold: var(--marigold);
   --color-marigold-soft: var(--marigold-soft);
@@ -132,6 +167,17 @@
 
   --shadow-card: var(--shadow-card);
   --shadow-card-hover: var(--shadow-card-hover);
+  --shadow-pop: var(--shadow-pop);
+
+  --ease-out-soft: var(--ease-out);
+
+  /* fluid type scale (DESIGN.md §3: 12 / 14 / 16 / 20 / 24 / 32 / 48 / 64) */
+  --text-display: clamp(2.6rem, 1.55rem + 4.4vw, 4.75rem);
+  --text-display--line-height: 1.02;
+  --text-title: clamp(1.9rem, 1.45rem + 1.6vw, 2.75rem);
+  --text-title--line-height: 1.1;
+  --text-page: clamp(1.85rem, 1.5rem + 1.2vw, 2.5rem);
+  --text-page--line-height: 1.12;
 }
 
 @layer base {
@@ -141,6 +187,7 @@
   html {
     @apply font-sans;
     color-scheme: light;
+    -webkit-tap-highlight-color: transparent;
   }
   [data-theme="dark"] {
     color-scheme: dark;
@@ -148,36 +195,208 @@
   body {
     @apply bg-background text-foreground;
     line-height: 1.5;
+    text-rendering: optimizeLegibility;
   }
   h1,
   h2,
   h3 {
     font-family: var(--font-display);
     font-weight: 600;
-    letter-spacing: -0.015em;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--marigold) 35%, transparent);
   }
   /* DESIGN.md §7: indigo focus ring, 2px offset */
   :where(a, button, input, select, textarea, [role="tab"], [role="menuitem"], [tabindex]):focus-visible {
     outline: 2px solid var(--indigo);
     outline-offset: 2px;
   }
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+  [id] {
+    scroll-margin-top: 4rem;
+  }
 }
 
+/* ---------- Surfaces & atmosphere ---------- */
+
 @utility dot-grid {
-  background-image: radial-gradient(color-mix(in oklab, var(--ink) 9%, transparent) 1px, transparent 1px);
+  background-image: radial-gradient(var(--dot) 1px, transparent 1px);
   background-size: 22px 22px;
 }
 
 @utility card-lift {
   box-shadow: var(--shadow-card);
-  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition:
+    transform var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out),
+    border-color var(--dur-base) var(--ease-out);
   &:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-card-hover);
+    border-color: var(--line-strong);
+  }
+  &:active {
+    transform: translateY(0) scale(0.99);
+    transition-duration: var(--dur-micro);
   }
   @media (prefers-reduced-motion: reduce) {
-    &:hover {
+    &:hover,
+    &:active {
       transform: none;
     }
+  }
+}
+
+/* Two soft colour fields; the drift is a slow compositor-only transform. */
+@utility ambient {
+  background:
+    radial-gradient(40% 50% at 72% 38%, var(--glow-marigold), transparent 70%),
+    radial-gradient(50% 60% at 28% 20%, var(--glow-indigo), transparent 70%);
+}
+
+@keyframes drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-2%, 1.5%, 0) scale(1.04);
+  }
+}
+
+/* ---------- Hero entrance (pure CSS: works before hydration and without JS) ---------- */
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+@keyframes line-up {
+  from {
+    transform: translateY(105%);
+  }
+}
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes tile-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.92);
+  }
+}
+
+@utility enter {
+  animation: rise var(--dur-enter) var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 70ms + 80ms);
+}
+@utility enter-fade {
+  animation: fade var(--dur-hero) var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 70ms + 80ms);
+}
+/* Line mask: outer clips, inner rises. Padding keeps descenders visible. */
+@utility line-mask {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.12em;
+  margin-bottom: -0.12em;
+}
+@utility line-rise {
+  display: block;
+  animation: line-up var(--dur-hero) var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 90ms + 120ms);
+}
+
+/* ---------- Scroll reveal (RevealObserver toggles data-in) ---------- */
+
+[data-motion] [data-reveal] {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity var(--dur-enter) var(--ease-out),
+    transform var(--dur-enter) var(--ease-out);
+  transition-delay: calc(min(var(--i, 0), 8) * 70ms);
+}
+[data-motion] [data-reveal][data-in] {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---------- One shared reduced-motion switch for CSS motion ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .enter,
+  .enter-fade,
+  .line-rise,
+  [data-anim] {
+    animation: none !important;
+  }
+  [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
+/* Theme switch cross-fade (View Transitions API, see ThemeToggle). */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 280ms;
+  animation-timing-function: var(--ease-out);
+}
+
+/* Reveal flavours: a connector line that draws, and staggered children inside a revealed block. */
+[data-motion] [data-reveal="line-x"] {
+  opacity: 1;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 900ms var(--ease-out) 150ms;
+}
+[data-motion] [data-reveal="line-y"] {
+  opacity: 1;
+  transform: scaleY(0);
+  transform-origin: top;
+  transition: transform 1100ms var(--ease-out) 200ms;
+}
+[data-motion] [data-reveal^="line"][data-in] {
+  transform: none;
+}
+[data-motion] [data-reveal] [data-child] {
+  opacity: 0;
+  transform: translateX(-6px);
+  transition:
+    opacity var(--dur-enter) var(--ease-out),
+    transform var(--dur-enter) var(--ease-out);
+  transition-delay: calc(var(--c, 0) * 110ms + 250ms);
+}
+[data-motion] [data-reveal][data-in] [data-child] {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] [data-child] {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
   }
 }

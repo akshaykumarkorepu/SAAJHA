@@ -2,16 +2,30 @@
 
 import { MotionConfig } from "motion/react";
 import { Toaster } from "sonner";
-import { EASE } from "./page-transition";
+import { transition } from "@/lib/motion";
+import { RevealObserver } from "./reveal";
 import { ThemeSync, useTheme } from "./theme";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const theme = useTheme();
   return (
-    <MotionConfig reducedMotion="user" transition={{ duration: 0.3, ease: EASE }}>
+    <MotionConfig reducedMotion="user" transition={transition.enter}>
       <ThemeSync />
+      <RevealObserver />
       {children}
-      <Toaster theme={theme} position="bottom-right" richColors closeButton toastOptions={{ className: "font-sans" }} />
+      <Toaster
+        theme={theme}
+        position="bottom-right"
+        closeButton
+        toastOptions={{
+          className: "font-sans !rounded-xl !border-line !bg-popover !text-popover-foreground !shadow-pop",
+          classNames: {
+            description: "!text-muted-foreground",
+            success: "[&_[data-icon]]:!text-success",
+            error: "[&_[data-icon]]:!text-danger",
+          },
+        }}
+      />
     </MotionConfig>
   );
 }

@@ -50,13 +50,22 @@ export function ThemeToggle() {
       aria-label={`Switch to ${next} theme`}
       title={`Switch to ${next} theme`}
       onClick={() => {
-        document.documentElement.setAttribute("data-theme", next);
-        try {
-          localStorage.setItem(KEY, next);
-        } catch {}
+        const apply = () => {
+          document.documentElement.setAttribute("data-theme", next);
+          try {
+            localStorage.setItem(KEY, next);
+          } catch {}
+        };
+        // Cross-fade where supported; instant for reduced motion or older browsers.
+        const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (!reduce && "startViewTransition" in document) document.startViewTransition(apply);
+        else apply();
       }}
     >
-      {theme === "dark" ? <Sun strokeWidth={1.75} /> : <Moon strokeWidth={1.75} />}
+      <span className="relative grid size-4 place-items-center">
+        <Sun strokeWidth={1.75} className="absolute scale-50 -rotate-90 opacity-0 transition-all duration-300 ease-(--ease-out) dark:scale-100 dark:rotate-0 dark:opacity-100" />
+        <Moon strokeWidth={1.75} className="absolute transition-all duration-300 ease-(--ease-out) dark:scale-50 dark:rotate-90 dark:opacity-0" />
+      </span>
     </Button>
   );
 }
