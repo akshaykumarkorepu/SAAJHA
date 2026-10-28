@@ -1,6 +1,10 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import { ResourceDetail } from "@/components/resource/resource-detail";
 import { DetailSkeleton } from "@/components/saajha/skeletons";
+
+// Static metadata keeps this route prerenderable; the client sets the resource name as the tab title.
+export const metadata: Metadata = { title: "Resource" };
 
 export default function ResourcePage({ params }: PageProps<"/resources/[id]">) {
   return (

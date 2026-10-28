@@ -4,7 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { CalendarDays, Info, Search, SearchX, X } from "lucide-react";
 import { getResources } from "@/lib/data";
 import type { Category, ResourceView } from "@/lib/types";
+import { transition } from "@/lib/motion";
 import { cn } from "@/lib/utils";
+import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CATEGORY_META, CategoryIcon } from "@/components/saajha/category-icon";
@@ -23,8 +25,16 @@ function toDateInput(d: Date) {
 
 function matchesQuery(r: ResourceView, q: string) {
   if (!q) return true;
-  const hay = `${r.name} ${r.description} ${r.location} ${r.owner.department} ${CATEGORY_META[r.category].label} ${r.required_badges.map((b) => b.name).join(" ")}`.toLowerCase();
-  const synonyms: Record<string, string> = { camera: "dslr", photo: "dslr", scope: "oscilloscope", printer: "3d", room: "room hall", pi: "raspberry" };
+  const hay =
+    `${r.name} ${r.description} ${r.location} ${r.owner.department} ${CATEGORY_META[r.category].label} ${r.required_badges.map((b) => b.name).join(" ")}`.toLowerCase();
+  const synonyms: Record<string, string> = {
+    camera: "dslr",
+    photo: "dslr",
+    scope: "oscilloscope",
+    printer: "3d",
+    room: "room hall",
+    pi: "raspberry",
+  };
   return q
     .toLowerCase()
     .split(/\s+/)
@@ -95,7 +105,7 @@ export function Explorer() {
 
   return (
     <div className="space-y-8">
-      <header className="space-y-2">
+      <header className="enter space-y-2" style={{ "--i": 0 } as React.CSSProperties}>
         <h1 className="text-page">Find something to borrow</h1>
         <p className="text-muted-foreground">
           Idle equipment and rooms across campus. Open one to see if you&apos;re ready to request it.
@@ -110,12 +120,18 @@ export function Explorer() {
         </p>
       )}
 
-      <NeedBox />
+      <div className="enter" style={{ "--i": 1 } as React.CSSProperties}>
+        <NeedBox />
+      </div>
 
-      <section aria-label="Search and filters" className="space-y-4">
+      <section aria-label="Search and filters" className="enter space-y-4" style={{ "--i": 2 } as React.CSSProperties}>
         <div className="flex flex-col gap-3 md:flex-row">
           <div className="relative flex-1">
-            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" strokeWidth={1.75} aria-hidden="true" />
+            <Search
+              className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+              strokeWidth={1.75}
+              aria-hidden="true"
+            />
             <label htmlFor="search" className="sr-only">
               Search resources
             </label>
@@ -131,15 +147,13 @@ export function Explorer() {
           <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Open on">
             <CalendarDays className="size-4 text-muted-foreground" strokeWidth={1.75} aria-hidden="true" />
             {quickDates.map((d) => (
-              <Button
+              <CategoryChip
                 key={d.label}
-                variant={date === d.value ? "secondary" : "outline"}
-                aria-pressed={date === d.value}
+                group="date"
+                active={date === d.value}
                 onClick={() => setDate(d.value)}
-                className="h-9 rounded-full px-3.5"
-              >
-                {d.label}
-              </Button>
+                label={d.label}
+              />
             ))}
             <label htmlFor="date" className="sr-only">
               Pick a date
@@ -157,10 +171,17 @@ export function Explorer() {
 
         <div className="-mx-4 overflow-x-auto px-4 pb-1" role="group" aria-label="Category">
           <div className="flex w-max gap-2">
-            <CategoryChip active={category === "all"} onClick={() => setCategory("all")} label="All" count={base.length} />
+            <CategoryChip
+              group="category"
+              active={category === "all"}
+              onClick={() => setCategory("all")}
+              label="All"
+              count={base.length}
+            />
             {CATEGORIES.map((c) => (
               <CategoryChip
                 key={c}
+                group="category"
                 active={category === c}
                 onClick={() => setCategory(c)}
                 label={CATEGORY_META[c].label}
@@ -172,7 +193,12 @@ export function Explorer() {
         </div>
       </section>
 
-      <section aria-label="Resources" aria-busy={!resources}>
+      <section
+        aria-label="Resources"
+        aria-busy={!resources}
+        className="enter"
+        style={{ "--i": 3 } as React.CSSProperties}
+      >
         {failed ? (
           <ErrorState title="We couldn't load resources" onRetry={() => load()} />
         ) : !resources ? (
@@ -195,7 +221,11 @@ export function Explorer() {
               {filtered && (
                 <>
                   {" · "}
-                  <button type="button" onClick={clear} className="rounded underline underline-offset-4 hover:text-foreground">
+                  <button
+                    type="button"
+                    onClick={clear}
+                    className="rounded underline underline-offset-4 hover:text-foreground"
+                  >
                     clear filters
                   </button>
                 </>
@@ -214,6 +244,7 @@ export function Explorer() {
 }
 
 function CategoryChip({
+  group,
   active,
   onClick,
   label,
@@ -223,8 +254,10 @@ function CategoryChip({
   active: boolean;
   onClick: () => void;
   label: string;
-  count: number;
+  count?: number;
   icon?: React.ReactNode;
+  /** Chips in the same group share one sliding active pill. */
+  group: string;
 }) {
   return (
     <button
@@ -232,20 +265,32 @@ function CategoryChip({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "inline-flex h-9 items-center gap-2 rounded-full border px-3.5 text-sm font-medium whitespace-nowrap transition-[color,background-color,border-color,transform] duration-200 ease-(--ease-out) active:scale-[0.97] motion-reduce:transform-none",
-        active ? "border-indigo bg-indigo text-primary-foreground" : "border-line-strong bg-card text-foreground hover:border-indigo/50 hover:bg-surface-2",
+        "relative isolate inline-flex h-9 items-center gap-2 rounded-full border px-3.5 text-sm font-medium whitespace-nowrap transition-[color,border-color,transform] duration-200 ease-(--ease-out) active:scale-[0.97] motion-reduce:transform-none",
+        active
+          ? "border-indigo text-primary-foreground"
+          : "border-line-strong bg-card text-foreground hover:border-indigo/50 hover:bg-surface-2",
       )}
     >
+      {active && (
+        <motion.span
+          layoutId={`chip-${group}`}
+          transition={transition.spring}
+          aria-hidden="true"
+          className="absolute inset-0 -z-10 rounded-full bg-indigo"
+        />
+      )}
       {icon}
       {label}
-      <span
-        className={cn(
-          "rounded-full px-1.5 font-mono text-[11px] leading-5",
-          active ? "bg-white/20 dark:bg-black/20" : "bg-muted text-muted-foreground",
-        )}
-      >
-        {count}
-      </span>
+      {count !== undefined && (
+        <span
+          className={cn(
+            "tabular rounded-full px-1.5 font-mono text-[11px] leading-5",
+            active ? "bg-white/20 dark:bg-black/20" : "bg-muted text-muted-foreground",
+          )}
+        >
+          {count}
+        </span>
+      )}
     </button>
   );
 }

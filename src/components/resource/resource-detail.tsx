@@ -23,7 +23,7 @@ import {
 import { getBusySlots, getResource, requestBooking, runReadinessCheck } from "@/lib/data";
 import { formatSlot, hourLabel, makeSlot } from "@/lib/slots";
 import type { ReadinessResult, ResourceView, Slot } from "@/lib/types";
-import { transition } from "@/lib/motion";
+import { shake, transition } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -37,6 +37,9 @@ import { Pill, StatusChip } from "@/components/saajha/status-chip";
 import { useSession } from "@/components/shell/session";
 import { ReadinessPanel } from "./readiness-panel";
 import { dayDate, defaultChoice, SlotPicker, type SlotChoice } from "./slot-picker";
+import { WeekStrip } from "./week-strip";
+import { Burst } from "@/components/saajha/burst";
+import { track } from "@/lib/judge";
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -91,9 +94,15 @@ export function ResourceDetail({ id }: { id: string }) {
 }
 
 function Loaded({ resource: r, busy, today }: { resource: ResourceView; busy: Slot[]; today: Date }) {
+  const [choice, setChoice] = useState<SlotChoice>(
+    () =>
+      defaultChoice(today, r.availability, busy, r.max_hours) ?? { day: 1, hour: 10, hours: Math.min(2, r.max_hours) },
+  );
+  useEffect(() => track("viewed_resource"), []);
   return (
     <div className="space-y-8">
-      <header className="space-y-4">
+      <title>{`${r.name} · Saajha`}</title>
+      <header className="enter space-y-4" style={{ "--i": 0 } as React.CSSProperties}>
         <Link
           href="/explore"
           className="group inline-flex items-center gap-1.5 rounded text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -144,14 +153,28 @@ function Loaded({ resource: r, busy, today }: { resource: ResourceView; busy: Sl
       </header>
 
       <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
-        <InfoTabs resource={r} busy={busy} />
-        <BookingPanel resource={r} busy={busy} today={today} />
+        <div className="enter min-w-0 space-y-6" style={{ "--i": 2 } as React.CSSProperties}>
+          <WeekStrip
+            today={today}
+            windows={r.availability}
+            busy={busy}
+            maxHours={r.max_hours}
+            value={choice}
+            onChange={setChoice}
+          />
+          <InfoTabs resource={r} busy={busy} />
+        </div>
+        {/* self-stretch keeps the row's full height so the panel can still stick on desktop */}
+        <div className="enter min-w-0 lg:self-stretch" style={{ "--i": 1 } as React.CSSProperties}>
+          <BookingPanel resource={r} busy={busy} today={today} choice={choice} onChoice={setChoice} />
+        </div>
       </div>
     </div>
   );
 }
 
 function InfoTabs({ resource: r, busy }: { resource: ResourceView; busy: Slot[] }) {
+  const [tab, setTab] = useState("overview");
   const facts = [
     { Icon: Timer, label: "Max per booking", value: `${r.max_hours} hours` },
     { Icon: Coins, label: "Credit cost", value: `${r.credit_cost} of 10 weekly credits` },
@@ -169,11 +192,29 @@ function InfoTabs({ resource: r, busy }: { resource: ResourceView; busy: Slot[] 
   const upcomingBusy = busy.filter((b) => new Date(b.ends_at) > new Date()).slice(0, 5);
 
   return (
-    <Tabs defaultValue="overview" className="rounded-2xl border border-line bg-card p-4 shadow-card sm:p-6">
-      <TabsList className="w-full sm:w-fit">
-        <TabsTrigger value="overview">Overview</TabsTrigger>
-        <TabsTrigger value="rules">Rules</TabsTrigger>
-        <TabsTrigger value="availability">Availability</TabsTrigger>
+    <Tabs
+      value={tab}
+      onValueChange={(v) => setTab(v as string)}
+      className="rounded-2xl border border-line bg-card p-4 shadow-card sm:p-6"
+    >
+      <TabsList variant="line" className="w-full justify-start gap-1 border-b border-line pb-1 sm:w-fit">
+        {[
+          ["overview", "Overview"],
+          ["rules", "Rules"],
+          ["availability", "Availability"],
+        ].map(([v, label]) => (
+          <TabsTrigger key={v} value={v} className="min-h-9 flex-none px-3 after:hidden">
+            {label}
+            {tab === v && (
+              <motion.span
+                layoutId={`tab-underline-${r.id}`}
+                transition={transition.spring}
+                aria-hidden="true"
+                className="absolute inset-x-2 -bottom-[5px] h-0.5 rounded-full bg-marigold"
+              />
+            )}
+          </TabsTrigger>
+        ))}
       </TabsList>
 
       <TabsContent value="overview" className="space-y-6 pt-4">
@@ -273,12 +314,20 @@ function InfoTabs({ resource: r, busy }: { resource: ResourceView; busy: Slot[] 
   );
 }
 
-function BookingPanel({ resource: r, busy, today }: { resource: ResourceView; busy: Slot[]; today: Date }) {
+function BookingPanel({
+  resource: r,
+  busy,
+  today,
+  choice,
+  onChoice: setChoice,
+}: {
+  resource: ResourceView;
+  busy: Slot[];
+  today: Date;
+  choice: SlotChoice;
+  onChoice: (c: SlotChoice) => void;
+}) {
   const { profile } = useSession();
-  const [choice, setChoice] = useState<SlotChoice>(
-    () =>
-      defaultChoice(today, r.availability, busy, r.max_hours) ?? { day: 1, hour: 10, hours: Math.min(2, r.max_hours) },
-  );
   const slot = useMemo(() => makeSlot(dayDate(today, choice.day), choice.hour, choice.hours), [today, choice]);
   const [result, setResult] = useState<ReadinessResult | null>(null);
   const [checkFailed, setCheckFailed] = useState(false);
@@ -288,6 +337,8 @@ function BookingPanel({ resource: r, busy, today }: { resource: ResourceView; bu
   const [purpose, setPurpose] = useState("");
   const [purposeError, setPurposeError] = useState(false);
   const [sending, setSending] = useState(false);
+  const [celebrating, setCelebrating] = useState(false);
+  const shakeCtl = useAnimationControls();
   const glow = useAnimationControls();
 
   useEffect(() => {
@@ -306,6 +357,13 @@ function BookingPanel({ resource: r, busy, today }: { resource: ResourceView; bu
   const outcome = settled ? result?.outcome : undefined;
 
   useEffect(() => {
+    if (!settled || !result) return;
+    if (result.outcome === "ready") track("readiness_ready");
+    if (result.outcome === "waitlist") track("readiness_waitlist");
+    if (result.checks.some((c) => c.key === "badges" && !c.passed)) track("readiness_badge_fail");
+  }, [settled, result]);
+
+  useEffect(() => {
     if (outcome === "ready") {
       glow.start({
         boxShadow: [
@@ -320,25 +378,36 @@ function BookingPanel({ resource: r, busy, today }: { resource: ResourceView; bu
   }, [outcome, glow]);
 
   async function submit() {
+    if (celebrating) return;
     if (!purpose.trim()) {
       setPurposeError(true);
+      shakeCtl.start(shake);
       document.getElementById("purpose")?.focus();
       return;
     }
     setSending(true);
     try {
       const res = await requestBooking(r.id, profile.id, slot, purpose);
+      track("requested");
+      // Success moment: the button becomes a tick with one short burst, then the confirmation card.
+      setSending(false);
+      setCelebrating(true);
+      await new Promise((done) => setTimeout(done, 750));
+      setCelebrating(false);
       setSent({ status: res.status, position: res.position, slot });
       if (res.status === "waitlisted") {
         toast.success(`You're #${res.position} on the waitlist`, {
           description: `If ${formatSlot(slot)} frees up, you'll be offered it first.`,
         });
       } else {
-        toast.success(r.requires_approval ? `Request sent to ${r.owner.full_name}` : "Booked. It's yours.", {
-          description: r.requires_approval
-            ? `${r.owner.department} will review it. You'll get a notification with their decision and reason.`
-            : formatSlot(slot),
-        });
+        toast.success(
+          r.requires_approval ? `Sent to ${r.owner.full_name}, ${r.owner.department}` : "Booked. It's yours.",
+          {
+            description: r.requires_approval
+              ? "You'll be notified when they decide, with their reason."
+              : formatSlot(slot),
+          },
+        );
       }
     } catch (e) {
       toast.error("Couldn't send the request", { description: (e as Error).message });
@@ -424,36 +493,50 @@ function BookingPanel({ resource: r, busy, today }: { resource: ResourceView; bu
               transition={transition.base}
             >
               <div className="mt-5 space-y-2">
-                <Label htmlFor="purpose">Purpose</Label>
-                <Textarea
-                  id="purpose"
-                  value={purpose}
-                  onChange={(e) => {
-                    setPurpose(e.target.value);
-                    if (e.target.value.trim()) setPurposeError(false);
-                  }}
-                  rows={2}
-                  placeholder="What will you use it for? Owners decide faster with a clear reason."
-                  aria-invalid={purposeError || undefined}
-                  aria-describedby={purposeError ? "purpose-error" : undefined}
-                />
+                {/* Floating label: sits inside the field until you type or focus, then rises. */}
+                <motion.div animate={shakeCtl} className="relative">
+                  <Textarea
+                    id="purpose"
+                    value={purpose}
+                    onChange={(e) => {
+                      setPurpose(e.target.value);
+                      if (e.target.value.trim()) setPurposeError(false);
+                    }}
+                    rows={2}
+                    placeholder=" "
+                    aria-invalid={purposeError || undefined}
+                    aria-describedby={purposeError ? "purpose-error" : "purpose-hint"}
+                    className="peer min-h-20 resize-none pt-6"
+                  />
+                  <Label
+                    htmlFor="purpose"
+                    className="pointer-events-none absolute top-2 left-2.5 origin-left text-xs font-medium text-muted-foreground transition-all duration-200 ease-(--ease-out) peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-sm peer-placeholder-shown:font-normal peer-focus:top-2 peer-focus:text-xs peer-focus:font-medium peer-focus:text-indigo peer-aria-invalid:text-danger-ink"
+                  >
+                    Purpose
+                  </Label>
+                </motion.div>
+                <p id="purpose-hint" className="sr-only">
+                  What will you use it for? Owners decide faster with a clear reason.
+                </p>
                 {/* Reserved line so the message never pushes the button down. */}
                 <p
                   id="purpose-error"
                   aria-live="polite"
-                  className={cn(
-                    "h-4 text-xs text-danger-ink transition-opacity duration-200",
-                    purposeError ? "opacity-100" : "opacity-0",
-                  )}
+                  className={cn("h-4 text-xs text-danger-ink transition-opacity duration-200")}
                 >
                   {purposeError ? "Add a one-line purpose so the owner knows why you need it." : ""}
+                  {!purposeError && (
+                    <span className="text-muted-foreground">Owners decide faster with a clear reason.</span>
+                  )}
                 </p>
               </div>
 
-              <motion.div animate={glow} className="mt-2 rounded-[10px]">
+              <motion.div animate={glow} className="relative mt-2 rounded-[10px]">
+                {celebrating && <Burst />}
                 <Button
                   onClick={submit}
                   loading={sending}
+                  aria-live="polite"
                   disabled={!outcome || outcome === "blocked"}
                   className={cn(
                     "h-11 w-full text-[15px]",
@@ -461,17 +544,31 @@ function BookingPanel({ resource: r, busy, today }: { resource: ResourceView; bu
                       "bg-warning text-ink hover:bg-warning hover:brightness-105 dark:text-paper",
                   )}
                 >
-                  {!outcome
-                    ? "Checking…"
-                    : sending
-                      ? "Sending…"
-                      : outcome === "ready"
-                        ? r.requires_approval
-                          ? "Request access"
-                          : "Book now"
-                        : outcome === "waitlist"
-                          ? `Join waitlist (#${result?.waitlist?.position})`
-                          : "Fix the items above first"}
+                  {celebrating ? (
+                    <motion.span
+                      initial={{ scale: 0.6, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={transition.spring}
+                      className="inline-flex items-center gap-2"
+                    >
+                      <CheckCircle2 className="size-5" strokeWidth={2} aria-hidden="true" />
+                      {outcome === "waitlist" ? "On the waitlist" : "Sent"}
+                    </motion.span>
+                  ) : !outcome ? (
+                    "Checking…"
+                  ) : sending ? (
+                    "Sending…"
+                  ) : outcome === "ready" ? (
+                    r.requires_approval ? (
+                      "Request access"
+                    ) : (
+                      "Book now"
+                    )
+                  ) : outcome === "waitlist" ? (
+                    `Join waitlist (#${result?.waitlist?.position})`
+                  ) : (
+                    "Fix the items above first"
+                  )}
                 </Button>
               </motion.div>
             </motion.div>
