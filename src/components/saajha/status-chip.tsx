@@ -16,6 +16,9 @@ const STYLES: Record<BookingStatus, { label: string; className: string }> = {
   completed: { label: "Completed", className: "border-transparent bg-success text-white dark:text-paper" },
 };
 
+/** States where something is actively happening get a soft pulse. */
+const LIVE = new Set<BookingStatus>(["requested", "checked_out", "overdue"]);
+
 /** One chip for every booking state (DESIGN.md §4). `layoutId` lets it morph on change. */
 export function StatusChip({ status, layoutId, className }: { status: BookingStatus; layoutId?: string; className?: string }) {
   const s = STYLES[status];
@@ -29,7 +32,12 @@ export function StatusChip({ status, layoutId, className }: { status: BookingSta
         className,
       )}
     >
-      <span aria-hidden="true" className="size-1.5 rounded-full bg-current opacity-80" />
+      <span aria-hidden="true" className="relative flex size-1.5">
+        {LIVE.has(status) && (
+          <span className="absolute inset-0 rounded-full bg-current [animation:pulse-dot_1.8s_var(--ease-out)_infinite] motion-reduce:hidden" />
+        )}
+        <span className="relative size-1.5 rounded-full bg-current opacity-80" />
+      </span>
       {s.label}
     </motion.span>
   );

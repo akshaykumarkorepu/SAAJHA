@@ -97,7 +97,7 @@ export function HeroAnimation() {
         aria-hidden="true"
       />
       <div
-        className="pointer-events-none absolute inset-8 -z-10 rounded-full bg-marigold/10 blur-3xl"
+        className="pointer-events-none absolute inset-8 -z-10 rounded-full bg-marigold/6 blur-3xl"
         aria-hidden="true"
       />
 

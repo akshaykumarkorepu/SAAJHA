@@ -101,7 +101,7 @@ function PendingRow() {
   return (
     <li className="flex items-center gap-3 rounded-lg px-2 py-2">
       <Spinner />
-      <span className="h-3 w-2/3 animate-pulse rounded bg-muted" />
+      <span className="h-3 w-2/3 animate-pulse rounded bg-muted motion-reduce:animate-none" />
     </li>
   );
 }

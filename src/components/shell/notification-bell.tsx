@@ -47,9 +47,15 @@ export function NotificationBell() {
           <Bell strokeWidth={1.75} />
         </motion.span>
         {unread > 0 && (
-          <span className="absolute top-0.5 right-0.5 grid min-w-4 place-items-center rounded-full bg-marigold px-1 font-mono text-[10px] leading-4 font-semibold text-ink">
+          <motion.span
+            key={unread}
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 520, damping: 18 }}
+            className="absolute top-0.5 right-0.5 grid min-w-4 place-items-center rounded-full bg-marigold px-1 font-mono text-[10px] leading-4 font-semibold text-ink"
+          >
             {unread}
-          </span>
+          </motion.span>
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80 max-w-[calc(100vw-2rem)] p-1.5">
@@ -61,11 +67,12 @@ export function NotificationBell() {
               You&apos;re all caught up.
             </div>
           ) : (
-            items.map((n) => (
+            items.map((n, i) => (
               <DropdownMenuItem
                 key={n.id}
                 render={<Link href={n.link ?? "#"} />}
-                className="flex items-start gap-2.5 px-2 py-2"
+                style={{ animationDelay: `${60 + i * 50}ms` }}
+                className="flex items-start gap-2.5 px-2 py-2 [animation:item-in_280ms_var(--ease-out)_both] motion-reduce:animate-none"
               >
                 <span
                   className={`mt-1.5 size-2 shrink-0 rounded-full ${n.read ? "bg-transparent" : "bg-marigold"}`}

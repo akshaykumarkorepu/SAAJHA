@@ -7,7 +7,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
     <SessionGate
       fallback={
         <div className="grid flex-1 place-items-center" role="status" aria-label="Loading your demo session">
-          <LogoMark className="size-10 animate-pulse" />
+          <LogoMark className="size-10 animate-pulse motion-reduce:animate-none" />
         </div>
       }
     >

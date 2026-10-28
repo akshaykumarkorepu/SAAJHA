@@ -3,6 +3,8 @@
 import { useMemo } from "react";
 import { hourLabel, makeSlot, overlaps, relativeDay } from "@/lib/slots";
 import type { AvailabilityWindow, Slot } from "@/lib/types";
+import { motion } from "motion/react";
+import { transition } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 export interface SlotChoice {
@@ -77,10 +79,18 @@ export function SlotPicker({
                 disabled={!open}
                 onClick={() => onChange({ ...value, day: i })}
                 className={cn(
-                  "flex min-w-12 flex-1 shrink-0 flex-col items-center rounded-xl border px-2 py-1.5 text-xs transition-colors active:scale-[0.98] disabled:opacity-40",
-                  selected ? "border-indigo bg-indigo text-primary-foreground" : "bg-card hover:border-indigo/50",
+                  "relative isolate flex min-w-12 flex-1 shrink-0 flex-col items-center rounded-xl border px-2 py-1.5 text-xs transition-colors active:scale-[0.97] disabled:opacity-40",
+                  selected ? "border-indigo text-primary-foreground" : "bg-card hover:border-indigo/50",
                 )}
               >
+                {selected && (
+                  <motion.span
+                    layoutId="slot-day"
+                    transition={transition.spring}
+                    aria-hidden="true"
+                    className="absolute inset-0 -z-10 rounded-[11px] bg-indigo"
+                  />
+                )}
                 <span className={cn(selected ? "opacity-85" : "text-muted-foreground")}>
                   {i === 0 ? "Today" : i === 1 ? "Tmrw" : d.toLocaleDateString("en-IN", { weekday: "short" })}
                 </span>
@@ -148,10 +158,18 @@ export function SlotPicker({
               aria-checked={value.hours === n}
               onClick={() => onChange({ ...value, hours: n })}
               className={cn(
-                "h-9 flex-1 rounded-lg border font-mono text-xs transition-colors active:scale-[0.98]",
-                value.hours === n ? "border-indigo bg-indigo text-primary-foreground" : "bg-card hover:border-indigo/50",
+                "relative isolate h-9 flex-1 rounded-lg border font-mono text-xs transition-colors active:scale-[0.97]",
+                value.hours === n ? "border-indigo text-primary-foreground" : "bg-card hover:border-indigo/50",
               )}
             >
+              {value.hours === n && (
+                <motion.span
+                  layoutId="slot-duration"
+                  transition={transition.spring}
+                  aria-hidden="true"
+                  className="absolute inset-0 -z-10 rounded-[7px] bg-indigo"
+                />
+              )}
               {n} h
             </button>
           ))}

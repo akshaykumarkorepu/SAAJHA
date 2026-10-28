@@ -40,6 +40,34 @@ export function ThemeSync() {
   return null;
 }
 
+/**
+ * Switch theme. With View Transitions, the new theme grows as a circle from `origin`
+ * (the toggle button); otherwise, or with reduced motion, it switches instantly.
+ */
+export function toggleTheme(origin?: { x: number; y: number }) {
+  const next: Theme = current() === "dark" ? "light" : "dark";
+  const apply = () => {
+    document.documentElement.setAttribute("data-theme", next);
+    try {
+      localStorage.setItem(KEY, next);
+    } catch {}
+  };
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduce || !("startViewTransition" in document)) return apply();
+  const vt = document.startViewTransition(apply);
+  const x = origin?.x ?? innerWidth / 2;
+  const y = origin?.y ?? innerHeight / 2;
+  const r = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+  vt.ready
+    .then(() =>
+      document.documentElement.animate(
+        { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${r}px at ${x}px ${y}px)`] },
+        { duration: 420, easing: "cubic-bezier(0.22, 1, 0.36, 1)", pseudoElement: "::view-transition-new(root)" },
+      ),
+    )
+    .catch(() => {});
+}
+
 export function ThemeToggle() {
   const theme = useTheme();
   const next: Theme = theme === "dark" ? "light" : "dark";
@@ -49,17 +77,9 @@ export function ThemeToggle() {
       size="icon"
       aria-label={`Switch to ${next} theme`}
       title={`Switch to ${next} theme`}
-      onClick={() => {
-        const apply = () => {
-          document.documentElement.setAttribute("data-theme", next);
-          try {
-            localStorage.setItem(KEY, next);
-          } catch {}
-        };
-        // Cross-fade where supported; instant for reduced motion or older browsers.
-        const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-        if (!reduce && "startViewTransition" in document) document.startViewTransition(apply);
-        else apply();
+      onClick={(e) => {
+        const b = e.currentTarget.getBoundingClientRect();
+        toggleTheme({ x: b.left + b.width / 2, y: b.top + b.height / 2 });
       }}
     >
       <span className="relative grid size-4 place-items-center">

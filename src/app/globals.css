@@ -34,13 +34,18 @@
   --danger-soft: #fbe9e5;
 
   /* atmosphere */
-  --glow-indigo: rgba(43, 58, 140, 0.1);
-  --glow-marigold: rgba(242, 165, 49, 0.16);
+  --glow-indigo: rgba(43, 58, 140, 0.06);
+  --glow-marigold: rgba(242, 165, 49, 0.06);
   --dot: rgba(20, 22, 43, 0.09);
 
-  --shadow-card: 0 1px 2px rgba(20, 22, 43, 0.04), 0 8px 24px rgba(20, 22, 43, 0.06);
-  --shadow-card-hover: 0 2px 4px rgba(20, 22, 43, 0.05), 0 16px 36px -8px rgba(20, 22, 43, 0.14);
-  --shadow-pop: 0 12px 40px -12px rgba(20, 22, 43, 0.25);
+  /* layered: top highlight + contact + ambient + key */
+  --shadow-card: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 1px 1px rgba(20, 22, 43, 0.04),
+    0 2px 6px -2px rgba(20, 22, 43, 0.05), 0 12px 28px -14px rgba(20, 22, 43, 0.12);
+  --shadow-card-hover: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 1px 2px rgba(20, 22, 43, 0.05),
+    0 6px 14px -6px rgba(20, 22, 43, 0.09), 0 26px 50px -18px rgba(20, 22, 43, 0.2);
+  --shadow-pop: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 2px 6px -2px rgba(20, 22, 43, 0.08),
+    0 24px 56px -16px rgba(20, 22, 43, 0.28);
+  --grain-opacity: 0.03;
 
   /* motion (mirrors src/lib/motion.ts) */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
@@ -97,15 +102,18 @@
   --warning-soft: #2a2114;
   --danger-soft: #2f1719;
 
-  --glow-indigo: rgba(129, 140, 248, 0.16);
-  --glow-marigold: rgba(245, 185, 66, 0.1);
+  --glow-indigo: rgba(129, 140, 248, 0.06);
+  --glow-marigold: rgba(245, 185, 66, 0.05);
+  --grain-opacity: 0.04;
   --dot: rgba(165, 180, 252, 0.09);
 
-  --shadow-card: inset 0 1px 0 rgba(255, 255, 255, 0.035), 0 1px 2px rgba(0, 0, 0, 0.35),
-    0 12px 32px -12px rgba(0, 0, 0, 0.55);
-  --shadow-card-hover: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 2px 4px rgba(0, 0, 0, 0.35),
-    0 20px 44px -12px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(129, 140, 248, 0.12);
-  --shadow-pop: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 24px 60px -16px rgba(0, 0, 0, 0.7);
+  /* top highlight + faint indigo rim light + contact + key */
+  --shadow-card: inset 0 1px 0 rgba(255, 255, 255, 0.05), inset 0 0 0 1px rgba(129, 140, 248, 0.05),
+    0 1px 2px rgba(0, 0, 0, 0.4), 0 16px 36px -16px rgba(0, 0, 0, 0.6);
+  --shadow-card-hover: inset 0 1px 0 rgba(255, 255, 255, 0.07), inset 0 0 0 1px rgba(129, 140, 248, 0.1),
+    0 2px 4px rgba(0, 0, 0, 0.4), 0 28px 56px -18px rgba(0, 0, 0, 0.75), 0 0 36px -14px rgba(129, 140, 248, 0.3);
+  --shadow-pop: inset 0 1px 0 rgba(255, 255, 255, 0.06), inset 0 0 0 1px rgba(129, 140, 248, 0.08),
+    0 28px 64px -16px rgba(0, 0, 0, 0.75);
 
   --primary-foreground: #0b0d18;
   --muted: #191d36;
@@ -196,6 +204,29 @@
     @apply bg-background text-foreground;
     line-height: 1.5;
     text-rendering: optimizeLegibility;
+  }
+  /* Static film grain behind all content (opaque cards sit above it, so text contrast is untouched). */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image: var(--grain);
+    opacity: var(--grain-opacity);
+  }
+  :root {
+    --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  code,
+  kbd,
+  .font-mono,
+  .tabular {
+    font-variant-numeric: tabular-nums slashed-zero;
+  }
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
   }
   h1,
   h2,
@@ -299,6 +330,49 @@
     stroke-dashoffset: 0;
   }
 }
+@keyframes word-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.32em);
+    filter: blur(10px);
+  }
+}
+@keyframes tab-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+}
+@keyframes tab-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+}
+@keyframes shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes pulse-dot {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+@keyframes item-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
 @keyframes tile-in {
   from {
     opacity: 0;
@@ -327,6 +401,36 @@
   animation-delay: calc(var(--i, 0) * 90ms + 120ms);
 }
 
+/* Hero words: rise from soft blur to sharp, 60ms apart. */
+@utility word-rise {
+  display: inline-block;
+  animation: word-in 640ms var(--ease-out) both;
+  animation-delay: calc(var(--w, 0) * 60ms + 120ms);
+}
+
+/* Section eyebrow: small caps, tracked, with a hairline that draws in when revealed. */
+@utility eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--indigo);
+}
+.eyebrow::before {
+  content: "";
+  height: 1px;
+  width: 2rem;
+  background: linear-gradient(90deg, var(--marigold), color-mix(in oklab, var(--indigo) 50%, transparent));
+  transform-origin: left;
+  transition: transform 700ms var(--ease-out) 200ms;
+}
+[data-motion] [data-reveal]:not([data-in]) .eyebrow::before {
+  transform: scaleX(0);
+}
+
 /* ---------- Scroll reveal (RevealObserver toggles data-in) ---------- */
 
 [data-motion] [data-reveal] {
@@ -348,6 +452,7 @@
   .enter,
   .enter-fade,
   .line-rise,
+  .word-rise,
   [data-anim] {
     animation: none !important;
   }
@@ -358,11 +463,11 @@
   }
 }
 
-/* Theme switch cross-fade (View Transitions API, see ThemeToggle). */
+/* Theme switch: toggleTheme() grows the new theme as a circle; disable the default cross-fade. */
 ::view-transition-old(root),
 ::view-transition-new(root) {
-  animation-duration: 280ms;
-  animation-timing-function: var(--ease-out);
+  animation: none;
+  mix-blend-mode: normal;
 }
 
 /* Reveal flavours: a connector line that draws, and staggered children inside a revealed block. */
