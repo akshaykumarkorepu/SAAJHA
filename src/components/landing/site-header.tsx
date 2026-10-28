@@ -6,8 +6,10 @@ import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { Logo } from "@/components/saajha/logo";
 import { ThemeToggle } from "@/components/saajha/theme";
+import { PaletteHint } from "@/components/saajha/command-palette";
 
 const SECTIONS = [
+  { id: "demo", label: "Try it" },
   { id: "how", label: "How it works" },
   { id: "trust", label: "Trust in practice" },
 ];
@@ -62,6 +64,7 @@ export function SiteHeader() {
               />
             </a>
           ))}
+          <PaletteHint className="hidden sm:inline-flex" />
           <ThemeToggle />
           <Link href="/login" className={buttonVariants({ variant: "outline", className: "h-9 px-4" })}>
             Log in
@@ -79,7 +82,12 @@ export function SiteFooter() {
         <div className="flex items-center gap-3">
           <Logo wordmarkClassName="text-base" />
           <span className="hidden sm:inline" aria-hidden="true">·</span>
-          <span>साझा: shared, jointly owned</span>
+          <span>
+            <span lang="hi" className="font-[family-name:var(--font-deva)] text-[1.05rem] text-foreground">
+              साझा
+            </span>
+            : shared, jointly owned
+          </span>
         </div>
         <p>Built by Team CTRL + AI for Code Conqueror India 2026. All data shown is fictional.</p>
       </div>

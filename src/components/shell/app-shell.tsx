@@ -7,6 +7,7 @@ import { motion } from "motion/react";
 import { toast } from "sonner";
 import { Check, ChevronDown, LogOut, Menu, Repeat } from "lucide-react";
 import { setDemoRole } from "@/lib/demo-session";
+import { track } from "@/lib/judge";
 import type { DemoRole } from "@/lib/types";
 import { transition } from "@/lib/motion";
 import { cn } from "@/lib/utils";
@@ -23,6 +24,7 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Logo } from "@/components/saajha/logo";
 import { ThemeToggle } from "@/components/saajha/theme";
+import { PaletteHint } from "@/components/saajha/command-palette";
 import { NAV_BY_ROLE, ROLE_LABEL } from "./nav-config";
 import { NotificationBell } from "./notification-bell";
 import { useSession } from "./session";
@@ -42,6 +44,7 @@ function useSwitchRole() {
   const router = useRouter();
   return (role: DemoRole | null) => {
     setDemoRole(role);
+    if (role) track("switched_role");
     if (role) {
       toast.success(`Now viewing as ${ROLE_LABEL[role]}`);
       router.push("/explore");
@@ -81,7 +84,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </a>
       <header
         className={cn(
-          "sticky top-0 z-40 border-b bg-background/80 backdrop-blur-md transition-[border-color,box-shadow] duration-300",
+          "enter-fade sticky top-0 z-40 border-b bg-background/80 backdrop-blur-md transition-[border-color,box-shadow] duration-300",
           scrolled ? "border-line shadow-[0_8px_24px_-16px_rgb(0_0_0/0.25)]" : "border-transparent",
         )}
       >
@@ -115,6 +118,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </nav>
 
           <div className="ml-auto flex items-center gap-1">
+            <PaletteHint className="mr-1" />
             <NotificationBell />
             <ThemeToggle />
 
@@ -212,7 +216,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
       <main id="main" className="relative mx-auto w-full max-w-[1200px] flex-1 px-4 py-8 sm:px-6 sm:py-12">
-        <div aria-hidden="true" className="ambient pointer-events-none absolute inset-x-0 -top-16 -z-10 h-[420px] opacity-50 [mask-image:linear-gradient(black,transparent)]" />
+        <div aria-hidden="true" data-anim="" className="ambient pointer-events-none absolute inset-x-0 -top-16 -z-10 h-[420px] [mask-image:linear-gradient(black,transparent)] [animation:drift_52s_var(--ease-in-out)_infinite]" />
         {children}
       </main>
     </>

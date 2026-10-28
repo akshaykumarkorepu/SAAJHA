@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { HeroAnimation } from "@/components/landing/hero-animation";
+import { HeroGlow } from "@/components/landing/hero-glow";
+import { ReadinessDemo } from "@/components/landing/readiness-demo";
 import { SiteFooter, SiteHeader } from "@/components/landing/site-header";
 import { Reveal } from "@/components/saajha/reveal";
 import { cn } from "@/lib/utils";
@@ -132,6 +134,10 @@ const EXAMPLE_HISTORY = [
   },
 ] as const;
 
+function W(w: number) {
+  return { "--w": w } as React.CSSProperties;
+}
+
 function I({ i }: { i: number }) {
   return { "--i": i } as React.CSSProperties;
 }
@@ -145,12 +151,13 @@ export default function Home() {
         <section id="top" className="relative -mt-16 overflow-hidden pt-16">
           <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
             <div
-              className="ambient absolute -inset-[10%] [animation:drift_28s_var(--ease-in-out)_infinite]"
+              className="ambient absolute -inset-[10%] [animation:drift_45s_var(--ease-in-out)_infinite]"
               data-anim=""
             />
             <div className="dot-grid absolute inset-0 [mask-image:radial-gradient(ellipse_70%_60%_at_50%_30%,black,transparent)]" />
             <div className="absolute inset-x-0 bottom-0 h-32 bg-linear-to-b from-transparent to-background" />
           </div>
+          <HeroGlow />
 
           <div className="mx-auto grid max-w-[1200px] items-center gap-12 px-4 pt-12 pb-20 sm:px-6 lg:grid-cols-[1.08fr_1fr] lg:gap-8 lg:pt-20 lg:pb-28">
             <div>
@@ -165,36 +172,40 @@ export default function Home() {
                 For NIT Warangal labs, clubs and partner colleges
               </p>
 
-              <h1 className="text-display">
-                <span className="line-mask">
-                  <span className="line-rise" style={I({ i: 0 })}>
-                    Idle labs,
+              <h1 className="text-display" aria-label="Idle labs, shared with trust.">
+                <span aria-hidden="true">
+                  <span className="word-rise" style={W(0)}>
+                    Idle
+                  </span>{" "}
+                  <span className="word-rise" style={W(1)}>
+                    labs,
                   </span>
-                </span>
-                <span className="line-mask">
-                  <span className="line-rise" style={I({ i: 1 })}>
-                    <span className="relative inline-block text-indigo">
-                      shared
-                      <svg
-                        aria-hidden="true"
-                        viewBox="0 0 200 12"
-                        preserveAspectRatio="none"
-                        className="absolute -bottom-[0.08em] left-0 h-[0.14em] w-full overflow-visible"
-                      >
-                        <path
-                          d="M2 8 C 50 2, 120 2, 198 6"
-                          fill="none"
-                          stroke="var(--marigold)"
-                          strokeWidth="5"
-                          strokeLinecap="round"
-                          pathLength={1}
-                          strokeDasharray="1"
-                          data-anim=""
-                          className="[animation:draw_700ms_var(--ease-out)_900ms_both]"
-                        />
-                      </svg>
-                    </span>{" "}
-                    with trust.
+                  <br />
+                  <span className="word-rise text-indigo" style={W(2)}>
+                    shared
+                  </span>{" "}
+                  <span className="word-rise" style={W(3)}>
+                    with
+                  </span>{" "}
+                  <span className="word-rise relative" style={W(4)}>
+                    trust.
+                    <svg
+                      viewBox="0 0 200 12"
+                      preserveAspectRatio="none"
+                      className="absolute -bottom-[0.06em] left-0 h-[0.14em] w-[88%] overflow-visible"
+                    >
+                      <path
+                        d="M2 8 C 50 2, 120 2, 198 6"
+                        fill="none"
+                        stroke="var(--marigold)"
+                        strokeWidth="5"
+                        strokeLinecap="round"
+                        pathLength={1}
+                        strokeDasharray="1"
+                        data-anim=""
+                        className="[animation:draw_700ms_var(--ease-out)_820ms_both]"
+                      />
+                    </svg>
                   </span>
                 </span>
               </h1>
@@ -230,7 +241,7 @@ export default function Home() {
                 ].map(([n, label], i) => (
                   <div key={label} className="enter flex flex-col-reverse" style={I({ i: 6 + i })}>
                     <dt className="text-xs leading-snug text-muted-foreground">{label}</dt>
-                    <dd className="font-display text-3xl font-semibold tracking-tight">{n}</dd>
+                    <dd className="tabular font-display text-3xl font-semibold tracking-tight">{n}</dd>
                   </div>
                 ))}
               </dl>
@@ -242,11 +253,28 @@ export default function Home() {
           </div>
         </section>
 
+        {/* ───────── Live readiness demo ───────── */}
+        <section id="demo" className="relative border-t border-line">
+          <div className="mx-auto max-w-[1200px] px-4 py-24 sm:px-6 lg:py-28">
+            <Reveal>
+              <p className="eyebrow">Try it without logging in</p>
+              <h2 className="mt-3 max-w-2xl text-title">Ask for something. See exactly why you can, or can&apos;t.</h2>
+              <p className="mt-4 max-w-xl text-muted-foreground">
+                Pick a person, a resource and a time. The real Access-Readiness Check runs on demo data, with a reason and
+                a next step on every line.
+              </p>
+            </Reveal>
+            <Reveal index={1} className="mt-12">
+              <ReadinessDemo />
+            </Reveal>
+          </div>
+        </section>
+
         {/* ───────── How it works ───────── */}
         <section id="how" className="relative border-t border-line bg-surface-2/40">
           <div className="mx-auto max-w-[1200px] px-4 py-24 sm:px-6 lg:py-28">
             <Reveal>
-              <p className="text-sm font-medium text-indigo">How Saajha works</p>
+              <p className="eyebrow">How Saajha works</p>
               <h2 className="mt-3 max-w-xl text-title">From idle shelf to trusted handover, in four steps.</h2>
             </Reveal>
             <div className="relative mt-14">
@@ -278,7 +306,7 @@ export default function Home() {
           <div aria-hidden="true" className="ambient pointer-events-none absolute inset-0 -z-10 opacity-60" />
           <div className="mx-auto max-w-[1200px] px-4 py-24 sm:px-6 lg:py-28">
             <Reveal>
-              <p className="text-sm font-medium text-indigo">Trust in practice</p>
+              <p className="eyebrow">Trust in practice</p>
               <h2 className="mt-3 max-w-2xl text-title">See why before you ask. See what happened after.</h2>
               <p className="mt-4 max-w-xl text-muted-foreground">
                 Two pieces of Saajha, shown here with fictional demo data. Open the demo to try them for real.
@@ -385,7 +413,7 @@ export default function Home() {
         <section className="border-t border-line bg-surface-2/40">
           <div className="mx-auto max-w-[1200px] px-4 py-24 sm:px-6 lg:py-28">
             <Reveal>
-              <p className="text-sm font-medium text-indigo">Why it&apos;s different from a booking app</p>
+              <p className="eyebrow">Why it&apos;s different from a booking app</p>
               <h2 className="mt-3 max-w-2xl text-title">
                 A calendar shows if it&apos;s free. Saajha shows if it&apos;s{" "}
                 <em className="text-indigo">safe to share</em>.
