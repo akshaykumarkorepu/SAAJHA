@@ -1,0 +1,197 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { Check, ChevronDown, LogOut, Menu, Repeat } from "lucide-react";
+import { setDemoRole } from "@/lib/demo-session";
+import type { DemoRole } from "@/lib/types";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Logo } from "@/components/saajha/logo";
+import { ThemeToggle } from "@/components/saajha/theme";
+import { NAV_BY_ROLE, ROLE_LABEL } from "./nav-config";
+import { NotificationBell } from "./notification-bell";
+import { useSession } from "./session";
+
+const ROLES = Object.keys(ROLE_LABEL) as DemoRole[];
+
+function initials(name: string) {
+  return name
+    .replace(/^(Dr|Prof)\.\s*/, "")
+    .split(/\s+/)
+    .map((p) => p[0])
+    .slice(0, 2)
+    .join("");
+}
+
+function useSwitchRole() {
+  const router = useRouter();
+  return (role: DemoRole | null) => {
+    setDemoRole(role);
+    if (role) {
+      toast.success(`Now viewing as ${ROLE_LABEL[role]}`);
+      router.push("/explore");
+    } else {
+      toast("Signed out of the demo");
+      router.push("/login");
+    }
+  };
+}
+
+function isActive(pathname: string, href: string) {
+  return pathname === href || pathname.startsWith(href + "/") || (href === "/explore" && pathname.startsWith("/resources"));
+}
+
+export function AppShell({ children }: { children: React.ReactNode }) {
+  const { role, profile } = useSession();
+  const pathname = usePathname();
+  const switchRole = useSwitchRole();
+  const [open, setOpen] = useState(false);
+  const links = NAV_BY_ROLE[role];
+
+  return (
+    <>
+      <a
+        href="#main"
+        className="sr-only z-50 rounded-md bg-card px-3 py-2 focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
+      >
+        Skip to content
+      </a>
+      <header className="sticky top-0 z-40 border-b border-line/70 bg-background/85 backdrop-blur">
+        <div className="mx-auto flex h-16 max-w-[1200px] items-center gap-2 px-4 sm:px-6">
+          <Link href="/explore" aria-label="Saajha, explore resources" className="mr-4 rounded-md">
+            <Logo />
+          </Link>
+
+          <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
+            {links.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                aria-current={isActive(pathname, l.href) ? "page" : undefined}
+                className={cn(
+                  "relative rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground",
+                  "aria-[current=page]:font-medium aria-[current=page]:text-foreground",
+                  "aria-[current=page]:after:absolute aria-[current=page]:after:inset-x-3 aria-[current=page]:after:-bottom-[13px] aria-[current=page]:after:h-0.5 aria-[current=page]:after:rounded-full aria-[current=page]:after:bg-marigold",
+                )}
+              >
+                {l.label}
+              </Link>
+            ))}
+          </nav>
+
+          <div className="ml-auto flex items-center gap-1">
+            <NotificationBell />
+            <ThemeToggle />
+
+            {/* Role badge + switch-role menu (desktop) */}
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={<Button variant="outline" className="ml-1 hidden h-10 gap-2 rounded-full pr-2.5 pl-1 md:inline-flex" />}
+              >
+                <span className="grid size-8 place-items-center rounded-full bg-indigo text-xs font-semibold text-primary-foreground">
+                  {initials(profile.full_name)}
+                </span>
+                <span className="flex flex-col items-start leading-tight">
+                  <span className="text-sm font-medium">{profile.full_name}</span>
+                  <span className="text-[11px] text-muted-foreground">{ROLE_LABEL[role]} · demo</span>
+                </span>
+                <ChevronDown className="size-4 text-muted-foreground" strokeWidth={1.75} aria-hidden="true" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-60 p-1.5">
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel className="flex items-center gap-1.5 px-2">
+                    <Repeat className="size-3.5" strokeWidth={1.75} aria-hidden="true" /> Switch role
+                  </DropdownMenuLabel>
+                  {ROLES.map((r) => (
+                    <DropdownMenuItem key={r} onClick={() => r !== role && switchRole(r)} className="px-2 py-1.5">
+                      <span className="flex-1">{ROLE_LABEL[r]}</span>
+                      {r === role && <Check className="size-4 text-indigo" strokeWidth={1.75} aria-label="current" />}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => switchRole(null)} className="px-2 py-1.5">
+                  <LogOut strokeWidth={1.75} aria-hidden="true" /> Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Mobile menu */}
+            <Sheet open={open} onOpenChange={setOpen}>
+              <SheetTrigger render={<Button variant="ghost" size="icon" className="md:hidden" aria-label="Open menu" />}>
+                <Menu strokeWidth={1.75} />
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[300px] gap-0 p-0">
+                <SheetHeader className="border-b p-4">
+                  <SheetTitle>
+                    <Logo />
+                  </SheetTitle>
+                </SheetHeader>
+                <div className="flex items-center gap-3 border-b p-4">
+                  <span className="grid size-10 place-items-center rounded-full bg-indigo text-sm font-semibold text-primary-foreground">
+                    {initials(profile.full_name)}
+                  </span>
+                  <div className="leading-tight">
+                    <p className="font-medium">{profile.full_name}</p>
+                    <p className="text-xs text-muted-foreground">{ROLE_LABEL[role]} · demo</p>
+                  </div>
+                </div>
+                <nav aria-label="Main" className="flex flex-col p-2">
+                  {links.map((l) => (
+                    <Link
+                      key={l.href}
+                      href={l.href}
+                      onClick={() => setOpen(false)}
+                      aria-current={isActive(pathname, l.href) ? "page" : undefined}
+                      className="rounded-md px-3 py-2.5 text-[15px] hover:bg-muted aria-[current=page]:bg-indigo-soft aria-[current=page]:font-medium aria-[current=page]:text-indigo"
+                    >
+                      {l.label}
+                    </Link>
+                  ))}
+                </nav>
+                <div className="border-t p-2">
+                  <p className="px-3 pt-2 pb-1 text-xs font-medium text-muted-foreground">Switch role</p>
+                  <div className="grid grid-cols-2 gap-1 p-1">
+                    {ROLES.map((r) => (
+                      <Button
+                        key={r}
+                        variant={r === role ? "secondary" : "ghost"}
+                        className="h-9 justify-start"
+                        aria-pressed={r === role}
+                        onClick={() => {
+                          setOpen(false);
+                          if (r !== role) switchRole(r);
+                        }}
+                      >
+                        {ROLE_LABEL[r]}
+                      </Button>
+                    ))}
+                  </div>
+                  <Button variant="ghost" className="mt-1 h-9 w-full justify-start" onClick={() => switchRole(null)}>
+                    <LogOut data-icon="inline-start" strokeWidth={1.75} /> Sign out
+                  </Button>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
+        </div>
+      </header>
+      <main id="main" className="mx-auto w-full max-w-[1200px] flex-1 px-4 py-8 sm:px-6 sm:py-10">
+        {children}
+      </main>
+    </>
+  );
+}
