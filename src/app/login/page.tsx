@@ -21,7 +21,7 @@ export default async function LoginPage() {
           </Link>
         </div>
         <div className="relative hidden lg:block">
-          <h1 className="text-5xl leading-[1.05]">
+          <h1 className="text-display">
             Idle labs,
             <br />
             shared with trust.
@@ -39,8 +39,8 @@ export default async function LoginPage() {
           <ThemeToggle />
         </div>
         <div className="mx-auto w-full max-w-2xl flex-1 lg:pt-8">
-          <h2 className="text-3xl sm:text-4xl">Choose a demo role</h2>
-          <p className="mt-2 text-muted-foreground">
+          <h2 className="enter text-page">Choose a demo role</h2>
+          <p className="enter mt-2 text-muted-foreground" style={{ "--i": 1 } as React.CSSProperties}>
             One click, no password. Every account and booking here is fictional.
           </p>
           <RolePicker accounts={accounts} />

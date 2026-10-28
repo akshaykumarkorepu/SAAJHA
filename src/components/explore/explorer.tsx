@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { CalendarDays, Info, Search, SearchX, X } from "lucide-react";
 import { getResources } from "@/lib/data";
 import type { Category, ResourceView } from "@/lib/types";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CATEGORY_META, CategoryIcon } from "@/components/saajha/category-icon";
 import { EmptyState } from "@/components/saajha/empty-state";
+import { ErrorState } from "@/components/saajha/error-state";
 import { ResourceGridSkeleton } from "@/components/saajha/skeletons";
 import { useSession } from "@/components/shell/session";
 import { NeedBox } from "./need-box";
@@ -43,18 +44,29 @@ export function Explorer() {
   const [category, setCategory] = useState<Category | "all">("all");
   const [date, setDate] = useState("");
   const [today, setToday] = useState<Date | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  const load = useCallback(
+    (isLive: () => boolean = () => true) =>
+      getResources(profile.id).then(
+        (r) => {
+          if (!isLive()) return;
+          setFailed(false);
+          setResources(r);
+          setToday(new Date());
+        },
+        () => isLive() && setFailed(true),
+      ),
+    [profile.id],
+  );
 
   useEffect(() => {
     let live = true;
-    getResources(profile.id).then((r) => {
-      if (!live) return;
-      setResources(r);
-      setToday(new Date());
-    });
+    load(() => live);
     return () => {
       live = false;
     };
-  }, [profile.id]);
+  }, [load]);
 
   const base = useMemo(
     () => (resources ?? []).filter((r) => matchesQuery(r, query) && openOn(r, date)),
@@ -84,7 +96,7 @@ export function Explorer() {
   return (
     <div className="space-y-8">
       <header className="space-y-2">
-        <h1 className="text-3xl sm:text-4xl">Find something to borrow</h1>
+        <h1 className="text-page">Find something to borrow</h1>
         <p className="text-muted-foreground">
           Idle equipment and rooms across campus. Open one to see if you&apos;re ready to request it.
         </p>
@@ -161,7 +173,9 @@ export function Explorer() {
       </section>
 
       <section aria-label="Resources" aria-busy={!resources}>
-        {!resources ? (
+        {failed ? (
+          <ErrorState title="We couldn't load resources" onRetry={() => load()} />
+        ) : !resources ? (
           <ResourceGridSkeleton />
         ) : shown.length === 0 ? (
           <EmptyState
@@ -218,8 +232,8 @@ function CategoryChip({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "inline-flex h-9 items-center gap-2 rounded-full border px-3.5 text-sm font-medium whitespace-nowrap transition-colors active:scale-[0.98]",
-        active ? "border-indigo bg-indigo text-primary-foreground" : "bg-card text-foreground hover:border-indigo/50",
+        "inline-flex h-9 items-center gap-2 rounded-full border px-3.5 text-sm font-medium whitespace-nowrap transition-[color,background-color,border-color,transform] duration-200 ease-(--ease-out) active:scale-[0.97] motion-reduce:transform-none",
+        active ? "border-indigo bg-indigo text-primary-foreground" : "border-line-strong bg-card text-foreground hover:border-indigo/50 hover:bg-surface-2",
       )}
     >
       {icon}

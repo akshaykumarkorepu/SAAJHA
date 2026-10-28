@@ -8,7 +8,7 @@ import type { ResourceView } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { CATEGORY_META, CategoryIcon } from "@/components/saajha/category-icon";
 import { Pill } from "@/components/saajha/status-chip";
-import { EASE } from "@/components/saajha/page-transition";
+import { fadeUp } from "@/lib/motion";
 
 const TINT: Record<ResourceView["category"], string> = {
   fabrication: "bg-marigold-soft text-warning-ink",
@@ -22,17 +22,18 @@ export function ResourceCard({ resource: r, index }: { resource: ResourceView; i
   return (
     <motion.li
       className="list-none"
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: EASE, delay: Math.min(index, 8) * 0.04 }}
+      variants={fadeUp}
+      initial="hidden"
+      animate="show"
+      custom={index}
     >
       <Link
         href={`/resources/${r.id}`}
-        className="card-lift group flex h-full flex-col overflow-hidden rounded-2xl border bg-card active:scale-[0.99]"
+        className="card-lift group flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-card"
       >
         <div className={cn("relative grid h-36 place-items-center overflow-hidden", TINT[r.category])}>
           <div className="dot-grid absolute inset-0 opacity-70" aria-hidden="true" />
-          <CategoryIcon category={r.category} className="relative size-12 transition-transform duration-300 group-hover:scale-110" />
+          <CategoryIcon category={r.category} className="relative size-12 transition-transform duration-500 ease-(--ease-out) group-hover:-translate-y-1 group-hover:scale-105 motion-reduce:transform-none" />
           <span className="absolute top-3 left-3 rounded-full bg-card/90 px-2.5 py-1 text-xs font-medium text-foreground">
             {CATEGORY_META[r.category].label}
           </span>
@@ -47,7 +48,7 @@ export function ResourceCard({ resource: r, index }: { resource: ResourceView; i
 
         <div className="flex flex-1 flex-col gap-3 p-4">
           <div>
-            <h3 className="font-display text-lg leading-snug font-semibold group-hover:text-indigo">{r.name}</h3>
+            <h3 className="font-display text-lg leading-snug font-semibold transition-colors duration-200 group-hover:text-indigo">{r.name}</h3>
             <p className="mt-1 flex items-start gap-1.5 text-sm text-muted-foreground">
               <MapPin className="mt-0.5 size-3.5 shrink-0" strokeWidth={1.75} aria-hidden="true" />
               <span>

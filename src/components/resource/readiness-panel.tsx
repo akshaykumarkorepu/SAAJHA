@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { ArrowRight, Clock, Info } from "lucide-react";
 import type { ReadinessCheck, ReadinessResult } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { EASE } from "@/components/saajha/page-transition";
+import { EASE_OUT, shake, transition } from "@/lib/motion";
 
 const STAGGER_MS = 120;
 
@@ -55,7 +55,7 @@ export function ReadinessPanel({ result, onSettled }: { result: ReadinessResult 
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.3, ease: EASE }}
+              transition={{ duration: 0.3, ease: EASE_OUT }}
               className={cn(
                 "mt-4 rounded-xl px-4 py-3 text-sm",
                 result.outcome === "ready" && "bg-success-soft text-success-ink",
@@ -110,9 +110,8 @@ function CheckRow({ check: c, state }: { check: ReadinessCheck; state: "pending"
   const failed = state === "done" && !c.passed && !c.kind;
   return (
     <motion.li
-      className={cn("rounded-lg px-2 py-2 transition-colors", failed && "bg-danger-soft/70")}
-      animate={failed ? { x: [0, -5, 5, -3, 3, 0] } : { x: 0 }}
-      transition={{ duration: 0.4, ease: "easeInOut" }}
+      className={cn("rounded-lg px-2 py-2 transition-colors duration-300", failed && "bg-danger-soft/70")}
+      animate={failed ? shake : { x: 0 }}
     >
       <div className="flex items-start gap-3">
         <span className="mt-0.5 grid size-5 shrink-0 place-items-center">
@@ -132,7 +131,7 @@ function CheckRow({ check: c, state }: { check: ReadinessCheck; state: "pending"
               <motion.div
                 initial={{ opacity: 0, x: -6 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.25, ease: EASE }}
+                transition={transition.base}
               >
                 <p
                   className={cn(
@@ -181,7 +180,7 @@ function ResultIcon({ check: c }: { check: ReadinessCheck }) {
         fill={pass ? "var(--success)" : "var(--danger)"}
         initial={{ scale: 0.6, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 0.2, ease: EASE }}
+        transition={{ duration: 0.2, ease: EASE_OUT }}
         style={{ transformOrigin: "12px 12px" }}
       />
       {pass ? (
@@ -194,7 +193,7 @@ function ResultIcon({ check: c }: { check: ReadinessCheck }) {
           strokeLinejoin="round"
           initial={{ pathLength: 0 }}
           animate={{ pathLength: 1 }}
-          transition={{ duration: 0.3, ease: EASE, delay: 0.08 }}
+          transition={{ duration: 0.3, ease: EASE_OUT, delay: 0.08 }}
         />
       ) : (
         <>
@@ -208,7 +207,7 @@ function ResultIcon({ check: c }: { check: ReadinessCheck }) {
               strokeLinecap="round"
               initial={{ pathLength: 0 }}
               animate={{ pathLength: 1 }}
-              transition={{ duration: 0.18, ease: EASE, delay: 0.08 + i * 0.12 }}
+              transition={{ duration: 0.18, ease: EASE_OUT, delay: 0.08 + i * 0.12 }}
             />
           ))}
         </>

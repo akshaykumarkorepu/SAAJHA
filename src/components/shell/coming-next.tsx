@@ -7,7 +7,7 @@ import { EmptyState } from "@/components/saajha/empty-state";
 export function ComingNext({ title, body }: { title: string; body: string }) {
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl sm:text-4xl">{title}</h1>
+      <h1 className="text-page">{title}</h1>
       <EmptyState
         icon={Hammer}
         title="Coming in the next build"

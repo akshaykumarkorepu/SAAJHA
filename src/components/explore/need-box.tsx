@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowRight, Sparkles } from "lucide-react";
+import { toast } from "sonner";
 import { matchNeed } from "@/lib/data";
 import type { ResourceView } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,8 @@ export function NeedBox() {
     setBusy(true);
     try {
       setMatches(await matchNeed(text, profile.id));
+    } catch {
+      toast.error("Couldn't suggest anything right now", { description: "Use search and the filters below instead." });
     } finally {
       setBusy(false);
     }
@@ -52,7 +55,7 @@ export function NeedBox() {
             placeholder="e.g. I need to record a club event on Saturday evening"
             className="min-h-10 flex-1 resize-none"
           />
-          <Button type="submit" disabled={busy || !text.trim()} className="h-10 px-4 active:scale-[0.98]">
+          <Button type="submit" loading={busy} disabled={!text.trim()} className="h-10 px-4">
             {busy ? "Matching…" : "Suggest"}
           </Button>
         </div>
@@ -75,14 +78,14 @@ export function NeedBox() {
                     <li key={r.id}>
                       <Link
                         href={`/resources/${r.id}`}
-                        className="group flex h-full items-start gap-3 rounded-xl border bg-background p-3 hover:border-indigo"
+                        className="group flex h-full items-start gap-3 rounded-xl border border-line bg-surface-2/50 p-3 transition-[border-color,background-color] duration-200 hover:border-indigo/50 hover:bg-surface-2"
                       >
                         <CategoryIcon category={r.category} className="mt-0.5 size-5 shrink-0 text-indigo" />
                         <span className="min-w-0">
                           <span className="block text-sm font-medium group-hover:text-indigo">{r.name}</span>
                           <span className="block text-xs text-muted-foreground">{reason}</span>
                         </span>
-                        <ArrowRight className="ml-auto size-4 shrink-0 text-muted-foreground" strokeWidth={1.75} aria-hidden="true" />
+                        <ArrowRight className="ml-auto size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5" strokeWidth={1.75} aria-hidden="true" />
                       </Link>
                     </li>
                   ))}

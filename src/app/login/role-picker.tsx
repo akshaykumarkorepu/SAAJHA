@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { ArrowRight, Building2, FlaskConical, Gavel, GraduationCap, ScrollText, UserRoundX, type LucideIcon } from "lucide-react";
 import { setDemoRole } from "@/lib/demo-session";
 import type { DemoAccount, DemoRole } from "@/lib/types";
-import { EASE } from "@/components/saajha/page-transition";
+import { fadeUp } from "@/lib/motion";
 
 const ICONS: Record<DemoRole, LucideIcon> = {
   student: GraduationCap,
@@ -33,16 +33,17 @@ export function RolePicker({ accounts }: { accounts: DemoAccount[] }) {
         return (
           <motion.li
             key={a.key}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, ease: EASE, delay: i * 0.04 }}
+            variants={fadeUp}
+            initial="hidden"
+            animate="show"
+            custom={i + 2}
           >
             <button
               type="button"
               onClick={() => choose(a)}
-              className="group card-lift flex h-full w-full items-start gap-4 rounded-2xl border bg-card p-4 text-left active:scale-[0.98]"
+              className="group card-lift flex h-full w-full items-start gap-4 rounded-2xl border border-line bg-card p-4 text-left"
             >
-              <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-indigo-soft text-indigo transition-colors group-hover:bg-marigold-soft group-hover:text-warning-ink">
+              <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-indigo-soft text-indigo transition-colors duration-300 group-hover:bg-marigold-soft group-hover:text-warning-ink">
                 <Icon className="size-5" strokeWidth={1.75} aria-hidden="true" />
               </span>
               <span className="min-w-0 flex-1">

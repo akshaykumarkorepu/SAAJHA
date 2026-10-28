@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { motion, useAnimationControls } from "motion/react";
+import { AnimatePresence, motion, useAnimationControls } from "motion/react";
 import { toast } from "sonner";
 import {
   ArrowLeft,
   BadgeCheck,
   CalendarClock,
+  CheckCircle2,
   Clock,
   Coins,
   Eye,
@@ -22,6 +23,7 @@ import {
 import { getBusySlots, getResource, requestBooking, runReadinessCheck } from "@/lib/data";
 import { formatSlot, hourLabel, makeSlot } from "@/lib/slots";
 import type { ReadinessResult, ResourceView, Slot } from "@/lib/types";
+import { transition } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -30,7 +32,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { CATEGORY_META, CategoryIcon } from "@/components/saajha/category-icon";
 import { EmptyState } from "@/components/saajha/empty-state";
 import { DetailSkeleton } from "@/components/saajha/skeletons";
-import { Pill } from "@/components/saajha/status-chip";
+import { ErrorState } from "@/components/saajha/error-state";
+import { Pill, StatusChip } from "@/components/saajha/status-chip";
 import { useSession } from "@/components/shell/session";
 import { ReadinessPanel } from "./readiness-panel";
 import { dayDate, defaultChoice, SlotPicker, type SlotChoice } from "./slot-picker";
@@ -46,17 +49,30 @@ interface Loaded {
 export function ResourceDetail({ id }: { id: string }) {
   const { profile } = useSession();
   const [data, setData] = useState<Loaded | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  const load = useCallback(
+    (isLive: () => boolean = () => true) =>
+      Promise.all([getResource(id, profile.id), getBusySlots(id)]).then(
+        ([resource, busy]) => {
+          if (!isLive()) return;
+          setFailed(false);
+          setData({ resource, busy, today: new Date() });
+        },
+        () => isLive() && setFailed(true),
+      ),
+    [id, profile.id],
+  );
 
   useEffect(() => {
     let live = true;
-    Promise.all([getResource(id, profile.id), getBusySlots(id)]).then(([resource, busy]) => {
-      if (live) setData({ resource, busy, today: new Date() });
-    });
+    load(() => live);
     return () => {
       live = false;
     };
-  }, [id, profile.id]);
+  }, [load]);
 
+  if (failed) return <ErrorState title="We couldn't load this resource" onRetry={() => load()} />;
   if (!data) return <DetailSkeleton />;
   if (!data.resource)
     return (
@@ -78,8 +94,16 @@ function Loaded({ resource: r, busy, today }: { resource: ResourceView; busy: Sl
   return (
     <div className="space-y-8">
       <header className="space-y-4">
-        <Link href="/explore" className="inline-flex items-center gap-1.5 rounded text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="size-4" strokeWidth={1.75} aria-hidden="true" /> All resources
+        <Link
+          href="/explore"
+          className="group inline-flex items-center gap-1.5 rounded text-sm text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft
+            className="size-4 transition-transform duration-200 group-hover:-translate-x-0.5"
+            strokeWidth={1.75}
+            aria-hidden="true"
+          />{" "}
+          All resources
         </Link>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
           <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-indigo-soft text-indigo">
@@ -104,7 +128,7 @@ function Loaded({ resource: r, busy, today }: { resource: ResourceView; busy: Sl
                 </Pill>
               )}
             </div>
-            <h1 className="mt-2 text-3xl sm:text-4xl">{r.name}</h1>
+            <h1 className="mt-2 text-page">{r.name}</h1>
             <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
               <span className="inline-flex items-center gap-1.5">
                 <UserCheck className="size-4" strokeWidth={1.75} aria-hidden="true" />
@@ -131,13 +155,21 @@ function InfoTabs({ resource: r, busy }: { resource: ResourceView; busy: Slot[] 
   const facts = [
     { Icon: Timer, label: "Max per booking", value: `${r.max_hours} hours` },
     { Icon: Coins, label: "Credit cost", value: `${r.credit_cost} of 10 weekly credits` },
-    { Icon: Clock, label: "Cooldown", value: r.cooldown_hours ? `${r.cooldown_hours} h between your bookings` : "None" },
-    { Icon: ShieldCheck, label: "Approval", value: r.requires_approval ? "Lab in-charge approves" : "Auto-approved if ready" },
+    {
+      Icon: Clock,
+      label: "Cooldown",
+      value: r.cooldown_hours ? `${r.cooldown_hours} h between your bookings` : "None",
+    },
+    {
+      Icon: ShieldCheck,
+      label: "Approval",
+      value: r.requires_approval ? "Lab in-charge approves" : "Auto-approved if ready",
+    },
   ];
   const upcomingBusy = busy.filter((b) => new Date(b.ends_at) > new Date()).slice(0, 5);
 
   return (
-    <Tabs defaultValue="overview" className="rounded-2xl border bg-card p-4 shadow-card sm:p-6">
+    <Tabs defaultValue="overview" className="rounded-2xl border border-line bg-card p-4 shadow-card sm:p-6">
       <TabsList className="w-full sm:w-fit">
         <TabsTrigger value="overview">Overview</TabsTrigger>
         <TabsTrigger value="rules">Rules</TabsTrigger>
@@ -160,12 +192,18 @@ function InfoTabs({ resource: r, busy }: { resource: ResourceView; busy: Slot[] 
         <div>
           <h2 className="text-lg">Required badges</h2>
           {r.required_badges.length === 0 ? (
-            <p className="mt-2 text-sm text-muted-foreground">None. Anyone verified at the institute can request this.</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              None. Anyone verified at the institute can request this.
+            </p>
           ) : (
             <ul className="mt-3 space-y-2">
               {r.required_badges.map((b) => (
                 <li key={b.id} className="flex items-start gap-3 rounded-xl border p-3">
-                  <BadgeCheck className="mt-0.5 size-5 shrink-0 text-warning-ink" strokeWidth={1.75} aria-hidden="true" />
+                  <BadgeCheck
+                    className="mt-0.5 size-5 shrink-0 text-warning-ink"
+                    strokeWidth={1.75}
+                    aria-hidden="true"
+                  />
                   <div>
                     <p className="text-sm font-medium">
                       {b.name} <span className="ml-1 font-mono text-xs text-muted-foreground">{b.code}</span>
@@ -180,7 +218,9 @@ function InfoTabs({ resource: r, busy }: { resource: ResourceView; busy: Slot[] 
       </TabsContent>
 
       <TabsContent value="rules" className="pt-4">
-        <p className="mb-3 text-sm text-muted-foreground">Set by {r.owner.full_name}. You agree to these when you request.</p>
+        <p className="mb-3 text-sm text-muted-foreground">
+          Set by {r.owner.full_name}. You agree to these when you request.
+        </p>
         <ol className="space-y-2">
           {r.usage_rules.split("\n").map((rule, i) => (
             <li key={i} className="flex gap-3 rounded-xl border p-3 text-sm">
@@ -217,7 +257,10 @@ function InfoTabs({ resource: r, busy }: { resource: ResourceView; busy: Slot[] 
           ) : (
             <ul className="mt-3 space-y-2">
               {upcomingBusy.map((b) => (
-                <li key={b.starts_at} className="flex items-center gap-2 rounded-xl bg-warning-soft px-3 py-2 text-sm text-warning-ink">
+                <li
+                  key={b.starts_at}
+                  className="flex items-center gap-2 rounded-xl bg-warning-soft px-3 py-2 text-sm text-warning-ink"
+                >
                   <CalendarClock className="size-4" strokeWidth={1.75} aria-hidden="true" />
                   {formatSlot(b)}
                 </li>
@@ -233,11 +276,15 @@ function InfoTabs({ resource: r, busy }: { resource: ResourceView; busy: Slot[] 
 function BookingPanel({ resource: r, busy, today }: { resource: ResourceView; busy: Slot[]; today: Date }) {
   const { profile } = useSession();
   const [choice, setChoice] = useState<SlotChoice>(
-    () => defaultChoice(today, r.availability, busy, r.max_hours) ?? { day: 1, hour: 10, hours: Math.min(2, r.max_hours) },
+    () =>
+      defaultChoice(today, r.availability, busy, r.max_hours) ?? { day: 1, hour: 10, hours: Math.min(2, r.max_hours) },
   );
   const slot = useMemo(() => makeSlot(dayDate(today, choice.day), choice.hour, choice.hours), [today, choice]);
   const [result, setResult] = useState<ReadinessResult | null>(null);
+  const [checkFailed, setCheckFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const [settled, setSettled] = useState(false);
+  const [sent, setSent] = useState<{ status: "requested" | "waitlisted"; position?: number; slot: Slot } | null>(null);
   const [purpose, setPurpose] = useState("");
   const [purposeError, setPurposeError] = useState(false);
   const [sending, setSending] = useState(false);
@@ -245,19 +292,28 @@ function BookingPanel({ resource: r, busy, today }: { resource: ResourceView; bu
 
   useEffect(() => {
     let live = true;
-    runReadinessCheck(r.id, profile.id, slot).then((res) => live && setResult(res));
+    runReadinessCheck(r.id, profile.id, slot).then(
+      (res) => live && setResult(res),
+      () => live && setCheckFailed(true),
+    );
     return () => {
       live = false;
       setResult(null);
+      setCheckFailed(false);
     };
-  }, [r.id, profile.id, slot]);
+  }, [r.id, profile.id, slot, attempt]);
 
   const outcome = settled ? result?.outcome : undefined;
 
   useEffect(() => {
     if (outcome === "ready") {
       glow.start({
-        boxShadow: ["0 0 0 0 rgba(242,165,49,0)", "0 0 0 6px rgba(242,165,49,0.45)", "0 0 22px 2px rgba(242,165,49,0.35)", "0 0 0 0 rgba(242,165,49,0)"],
+        boxShadow: [
+          "0 0 0 0 rgba(242,165,49,0)",
+          "0 0 0 6px rgba(242,165,49,0.45)",
+          "0 0 22px 2px rgba(242,165,49,0.35)",
+          "0 0 0 0 rgba(242,165,49,0)",
+        ],
         transition: { duration: 1.4, ease: "easeOut" },
       });
     }
@@ -272,6 +328,7 @@ function BookingPanel({ resource: r, busy, today }: { resource: ResourceView; bu
     setSending(true);
     try {
       const res = await requestBooking(r.id, profile.id, slot, purpose);
+      setSent({ status: res.status, position: res.position, slot });
       if (res.status === "waitlisted") {
         toast.success(`You're #${res.position} on the waitlist`, {
           description: `If ${formatSlot(slot)} frees up, you'll be offered it first.`,
@@ -292,14 +349,24 @@ function BookingPanel({ resource: r, busy, today }: { resource: ResourceView; bu
 
   return (
     <aside className="space-y-4 lg:sticky lg:top-24" aria-label="Request this resource">
-      <section className="rounded-2xl border bg-card p-4 shadow-card sm:p-5">
+      <section className="rounded-2xl border border-line bg-card p-4 shadow-card sm:p-5">
         <h2 className="text-lg">1 · Pick a slot</h2>
         <div className="mt-4">
-          <SlotPicker today={today} windows={r.availability} busy={busy} maxHours={r.max_hours} value={choice} onChange={setChoice} />
+          <SlotPicker
+            today={today}
+            windows={r.availability}
+            busy={busy}
+            maxHours={r.max_hours}
+            value={choice}
+            onChange={setChoice}
+          />
         </div>
       </section>
 
-      <section className="rounded-2xl border bg-card p-4 shadow-card sm:p-5" aria-labelledby="readiness-title">
+      <section
+        className="rounded-2xl border border-line bg-card p-4 shadow-card sm:p-5"
+        aria-labelledby="readiness-title"
+      >
         <h2 id="readiness-title" className="text-lg">
           2 · Access-Readiness Check
         </h2>
@@ -308,52 +375,108 @@ function BookingPanel({ resource: r, busy, today }: { resource: ResourceView; bu
           server when you submit.
         </p>
         <div className="mt-3">
-          <ReadinessPanel result={result} onSettled={setSettled} />
-        </div>
-
-        <div className="mt-5 space-y-2">
-          <Label htmlFor="purpose">Purpose</Label>
-          <Textarea
-            id="purpose"
-            value={purpose}
-            onChange={(e) => {
-              setPurpose(e.target.value);
-              if (e.target.value.trim()) setPurposeError(false);
-            }}
-            rows={2}
-            placeholder="What will you use it for? Owners decide faster with a clear reason."
-            aria-invalid={purposeError || undefined}
-            aria-describedby={purposeError ? "purpose-error" : undefined}
-          />
-          {purposeError && (
-            <p id="purpose-error" className="text-xs text-danger-ink">
-              Add a one-line purpose so the owner knows why you need it.
-            </p>
+          {checkFailed ? (
+            <div role="alert" className="rounded-xl border border-danger/30 bg-danger-soft p-4 text-sm text-danger-ink">
+              <p className="font-medium">The readiness check didn&apos;t finish.</p>
+              <p className="mt-0.5 text-xs">Nothing was sent. Run it again to see where you stand.</p>
+              <Button variant="outline" className="mt-3 h-8" onClick={() => setAttempt((n) => n + 1)}>
+                Run the check again
+              </Button>
+            </div>
+          ) : (
+            <ReadinessPanel result={result} onSettled={setSettled} />
           )}
         </div>
 
-        <motion.div animate={glow} className="mt-4 rounded-[10px]">
-          <Button
-            onClick={submit}
-            disabled={!outcome || outcome === "blocked" || sending}
-            className={cn(
-              "h-11 w-full text-[15px] active:scale-[0.98]",
-              outcome === "waitlist" && "bg-warning text-ink hover:bg-warning/90 dark:text-paper",
-            )}
-          >
-            {!outcome
-              ? "Checking…"
-              : sending
-                ? "Sending…"
-                : outcome === "ready"
-                  ? r.requires_approval
-                    ? "Request access"
-                    : "Book now"
-                  : outcome === "waitlist"
-                    ? `Join waitlist (#${result?.waitlist?.position})`
-                    : "Fix the items above first"}
-          </Button>
-        </motion.div>
+        <AnimatePresence mode="wait" initial={false}>
+          {sent && sent.slot === slot ? (
+            <motion.div
+              key="sent"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={transition.enter}
+              role="status"
+              className="mt-5 rounded-xl border border-line bg-surface-2/60 p-4"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <p className="flex items-center gap-2 text-sm font-medium">
+                  <CheckCircle2 className="size-4 text-success" strokeWidth={1.75} aria-hidden="true" />
+                  {sent.status === "waitlisted" ? `You're #${sent.position} on the waitlist` : "Request sent"}
+                </p>
+                <StatusChip status={sent.status} />
+              </div>
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                {sent.status === "waitlisted"
+                  ? `If ${formatSlot(sent.slot)} frees up, you'll be offered it first.`
+                  : r.requires_approval
+                    ? `${r.owner.full_name} will review it and you'll be notified with the decision and reason.`
+                    : `${formatSlot(sent.slot)} is yours.`}
+              </p>
+              <p className="mt-3 text-xs text-muted-foreground">Pick another slot above to make a different request.</p>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="form"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={transition.base}
+            >
+              <div className="mt-5 space-y-2">
+                <Label htmlFor="purpose">Purpose</Label>
+                <Textarea
+                  id="purpose"
+                  value={purpose}
+                  onChange={(e) => {
+                    setPurpose(e.target.value);
+                    if (e.target.value.trim()) setPurposeError(false);
+                  }}
+                  rows={2}
+                  placeholder="What will you use it for? Owners decide faster with a clear reason."
+                  aria-invalid={purposeError || undefined}
+                  aria-describedby={purposeError ? "purpose-error" : undefined}
+                />
+                {/* Reserved line so the message never pushes the button down. */}
+                <p
+                  id="purpose-error"
+                  aria-live="polite"
+                  className={cn(
+                    "h-4 text-xs text-danger-ink transition-opacity duration-200",
+                    purposeError ? "opacity-100" : "opacity-0",
+                  )}
+                >
+                  {purposeError ? "Add a one-line purpose so the owner knows why you need it." : ""}
+                </p>
+              </div>
+
+              <motion.div animate={glow} className="mt-2 rounded-[10px]">
+                <Button
+                  onClick={submit}
+                  loading={sending}
+                  disabled={!outcome || outcome === "blocked"}
+                  className={cn(
+                    "h-11 w-full text-[15px]",
+                    outcome === "waitlist" &&
+                      "bg-warning text-ink hover:bg-warning hover:brightness-105 dark:text-paper",
+                  )}
+                >
+                  {!outcome
+                    ? "Checking…"
+                    : sending
+                      ? "Sending…"
+                      : outcome === "ready"
+                        ? r.requires_approval
+                          ? "Request access"
+                          : "Book now"
+                        : outcome === "waitlist"
+                          ? `Join waitlist (#${result?.waitlist?.position})`
+                          : "Fix the items above first"}
+                </Button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </section>
     </aside>
   );

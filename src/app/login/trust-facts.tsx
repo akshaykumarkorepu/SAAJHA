@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { ShieldCheck } from "lucide-react";
-import { EASE } from "@/components/saajha/page-transition";
+import { EASE_OUT } from "@/lib/motion";
 
 const FACTS = [
   "Double booking is blocked by the database itself, not just by the screen.",
@@ -34,7 +34,7 @@ export function TrustFacts() {
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.3, ease: EASE }}
+            transition={{ duration: 0.3, ease: EASE_OUT }}
             className="text-[15px] leading-snug"
           >
             {FACTS[i]}
