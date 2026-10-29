@@ -1,76 +1,111 @@
-# Saajha Setup Guide (Hackathon Quickstart)
+# Saajha Setup & Integration Guide
 
-Welcome! This guide outlines the exact, step-by-step procedure to connect the local Saajha application to your Supabase project (`saajha` · reference: `vpggwcgfvxviumbjelbs`).
+Welcome! This guide outlines the exact, step-by-step procedure to connect the Saajha application to your Supabase project (`saajha` · reference: `vpggwcgfvxviumbjelbs`).
 
 ---
 
-## Step 1: Add Your Supabase JWT Anon Key to `.env.local`
+## Step 1: Configure Environment Variables
 
-Ensure `.env.local` has your project URL and the **JWT `anon` key**:
+Create or open `.env.local` in the project root:
+
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://vpggwcgfvxviumbjelbs.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
-### Important: Copy the JWT Key, Not the Publishable Key
-1. Open your browser to your Supabase Dashboard:
-   **[https://supabase.com/dashboard/project/vpggwcgfvxviumbjelbs/settings/api](https://supabase.com/dashboard/project/vpggwcgfvxviumbjelbs/settings/api)**
-2. In **Project Settings &rarr; API**:
-3. Look under **Project API keys** (or **Legacy API keys**).
-4. Locate the key labeled **`anon` / `public`**.
-   - **Correct Key Format**: A long JSON Web Token starting with `eyJhbGciOi...` (contains two dots `.`).
-   - *Note*: If you use an `sb_publishable_...` key instead of the JWT `anon` key, PostgREST will reject requests with `Invalid API key` or `Secret API key required`.
-5. Copy the `anon` `public` key (`eyJ...`) and paste it into `.env.local`:
-   ```env
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-   ```
-6. Save `.env.local`.
+> [!IMPORTANT]
+> **Use the standard JWT `anon` key, not the publishable key:**
+> 1. Open your browser to the Supabase Dashboard:
+>    **[https://supabase.com/dashboard/project/vpggwcgfvxviumbjelbs/settings/api](https://supabase.com/dashboard/project/vpggwcgfvxviumbjelbs/settings/api)**
+> 2. In **Project Settings &rarr; API &rarr; Project API keys**:
+> 3. Copy the key labeled **`anon` / `public`** (a long JSON Web Token starting with `eyJhbGciOi...`).
+> 4. *Do not use an `sb_publishable_...` key* — PostgREST requires the standard JWT token format to extract the PostgreSQL `anon` role.
+> 5. **Security**: `.env.local` is listed in `.gitignore` and must **never** be committed or shared.
 
 ---
 
-## Step 2: Run Database Setup (One Click)
+## Step 2: Apply the Canonical Database Setup
 
-You do **not** need the Supabase CLI or database passwords. You can execute the entire setup directly in the Supabase **SQL Editor**:
+The canonical setup file is [`supabase/combined_setup.sql`](./supabase/combined_setup.sql). It consolidates all 3 migration files, seed data, and demo auth accounts in exact dependency order:
 
+1. `20261030000001_initial_schema.sql` (Extensions, Enums, Tables, GiST range exclusion constraint)
+2. `20261030000002_functions_and_triggers.sql` (Audit Ledger, RPC functions, schema-routing, execution grants)
+3. `20261030000003_rls_policies.sql` (Row Level Security for all tables)
+4. `seed.sql` (NIT Warangal demo equipment, institutions, badges, schedules)
+5. `create_auth_users.sql` (Supabase Auth accounts with `@saajha.org` emails and password `Demo@1234`)
+
+### Safe Execution Procedure:
 1. Open the Supabase SQL Editor in your browser:
    **[https://supabase.com/dashboard/project/vpggwcgfvxviumbjelbs/sql/new](https://supabase.com/dashboard/project/vpggwcgfvxviumbjelbs/sql/new)**
-2. Open [`supabase/combined_setup.sql`](./supabase/combined_setup.sql) in your code editor.
-3. Copy all text, paste it into the Supabase SQL Editor query box, and click **Run**.
-   - *This sets up all 13 tables, custom enums, the `btree_gist` range exclusion constraint, security definer RPC functions, RLS policies, NIT Warangal demo equipment, and Supabase Auth accounts with password `Demo@1234`.*
-4. It should complete in a few seconds with `Success. No rows returned`.
+2. In your code editor, open [`supabase/combined_setup.sql`](./supabase/combined_setup.sql).
+3. Copy the full content, paste it into the SQL Editor, and click **Run**.
+4. **Safety Guarantee**: The script is idempotent. It uses `CREATE TABLE IF NOT EXISTS`, `CREATE OR REPLACE FUNCTION`, and `ON CONFLICT DO UPDATE`. Running it will **not** reset or drop existing tables or data.
+5. Expected result: `Success. No rows returned` (completes in 2–4 seconds).
 
 ---
 
-## Step 3: Run Verification Tests
+## Step 3: Run the Verification Test Suite
 
-To verify that the database functions, exclusion constraints, and cryptographic audit ledger are 100% operational:
+To verify that the database functions, exclusion constraints, RLS policies, and SHA-256 audit ledger are operational at the database level:
 
 1. In the Supabase SQL Editor, click **+ New query**.
 2. Open [`supabase/verification_tests.sql`](./supabase/verification_tests.sql) in your editor.
 3. Copy all text, paste it into the SQL Editor, and click **Run**.
-4. Confirm the test output displays:
+4. **Expected Success Output**:
    ```text
+   >>> [TEST 1] Testing Access-Readiness failure for missing badge...
+     Passed: Missing badge blocked with message: Missing: PRINTER_3D.
+   >>> [TEST 2] Testing successful request for verified student with badges...
+     Passed: Booking requested with ID ...
+   >>> [TEST 3] Testing unauthorized approval rejection...
+     Passed: Unauthorized approval blocked with error: ...
+   >>> [TEST 4] Testing owner rejection requiring a mandatory reason...
+     Passed: Empty reason rejection blocked: ...
+   >>> [TEST 5] Testing valid owner approval...
+     Passed: Booking approved by lab in-charge.
+   >>> [TEST 6] Testing Exclusion Constraint against double-booking...
+     Passed: PostgreSQL exclusion constraint blocked double booking (23P01 exclusion_violation).
+   >>> [TEST 7] Testing equipment check-out with condition report...
+     Passed: Check-out recorded with condition report ID ...
+   >>> [TEST 8] Testing equipment return with condition report...
+     Passed: Return recorded with condition report ID ...
+   >>> [TEST 9] Verifying cryptographic SHA-256 audit ledger integrity...
+     Passed: All 4 audit events verified intact.
+   =======================================================
    ALL 9 SAAJHA VERIFICATION TESTS COMPLETED SUCCESSFULLY!
+   =======================================================
    ```
-   *(The test suite automatically cleans up its test records, leaving your demo equipment and profiles pristine).*
+5. *(The test suite automatically deletes its temporary test booking, incident, condition report, and notification, leaving your catalog pristine).*
+
+> [!NOTE]
+> Database verification tests validate schema constraints and security-definer RPCs directly within PostgreSQL. Complete end-to-end verification across the Next.js browser UI, real session cookies, and Supabase client state is evaluated separately during browser walkthroughs.
 
 ---
 
-## Step 4: Recovery Procedure (If Ever Needed)
+## Step 4: Troubleshooting
 
-If an execution was previously interrupted or you ever need to reset application state:
-1. Open [`supabase/clean_reset.sql`](./supabase/clean_reset.sql).
-2. Paste and run it in the SQL Editor. It drops only Saajha's application tables and demo users, leaving platform extensions and system schemas completely safe.
-3. Then rerun [`supabase/combined_setup.sql`](./supabase/combined_setup.sql).
+If an SQL error occurs in the SQL Editor:
+- **`function digest(...) does not exist`**: Ensure `combined_setup.sql` was run completely. Migration 001 and 002 declare compatibility wrappers routing to `extensions.digest(...)` with UTF-8 bytea conversion.
+- **`function ... in schema cache`**: PostgREST cache has not updated yet. Run `NOTIFY pgrst, 'reload schema';` in the SQL Editor, or wait 10 seconds.
+- **Emergency Recovery (clean_reset.sql)**: If your database was corrupted by partial manual experimentation, [`supabase/clean_reset.sql`](./supabase/clean_reset.sql) is available to cleanly drop application tables and demo users before re-applying `combined_setup.sql`. **Do not run `clean_reset.sql` during routine updates** — it is strictly for emergency recovery.
 
 ---
 
-## Step 5: Start Saajha
+## Step 5: Start Saajha & Run End-to-End Tests
 
-Run the Next.js development server:
-```powershell
-npm.cmd run dev
-```
-Open **[http://localhost:3000/login](http://localhost:3000/login)**:
-- Click any demo role card to sign in directly with real Supabase Auth sessions.
-- Or use the **Institute Supabase Auth Sign-In** form to sign in using `student@saajha.demo` with password `Demo@1234`.
+1. Start the local server:
+   ```powershell
+   npm.cmd run dev
+   ```
+2. Open **[http://localhost:3000/login](http://localhost:3000/login)** in your browser.
+3. Sign in via either:
+   - One-click demo roles (e.g. Student, Owner, Manager, Admin).
+   - Institute Supabase Auth form using email `student@saajha.org` (or `owner@saajha.org`, `admin@saajha.org`) with password `Demo@1234`.
+4. **End-to-End Booking Lifecycle Test**:
+   - Go to `/explore` &rarr; click **Prusa MK4 3D Printer**.
+   - Pick an open slot &rarr; verify the **Access-Readiness Check** evaluates live rules.
+   - Enter a purpose &rarr; click **Request access**.
+   - Switch role to **Owner** &rarr; open `/owner` &rarr; approve the booking.
+   - Switch back to **Student** &rarr; open `/bookings` &rarr; click **Check Out** &rarr; submit condition report.
+   - When finished, click **Return Equipment** &rarr; submit return condition.
+   - Open `/admin` &rarr; click **Verify Ledger Integrity** &rarr; confirm all SHA-256 links verify intact.

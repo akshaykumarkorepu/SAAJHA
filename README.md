@@ -8,20 +8,23 @@ Saajha lets NIT Warangal labs and clubs safely share idle equipment and rooms. B
 - **Hackathon:** Code Conqueror India 2026
 - **Team CTRL + AI:** Akshay Kumar Korepu (Backend + AI) · Ragula Thirumal (Frontend + UI)
 
-> **Current status:** The application codebase includes the full UI, Supabase client/server integration, database schema, security-definer RPCs, and verification test scripts. When unconfigured or before remote migrations run, the app operates in offline mock/demo mode. Live database persistence is activated once remote Supabase migrations and Auth users are initialized. See [What works today](#what-works-today) and [Known gaps](#known-gaps--next-steps) below.
+> **Current status:** Saajha is a functional prototype featuring an implemented frontend, responsive application routes, Supabase database schema, security-definer RPCs, RLS policies, and Auth integration. Remote database setup on Supabase (`vpggwcgfvxviumbjelbs`) has been executed, and database-level verification tests have reportedly succeeded (as reported by user execution in the Supabase SQL Editor). Final browser-to-database end-to-end integration testing across real session cookies and interactive booking flows is scheduled for tomorrow's testing session. In unconfigured or offline mode, the application operates seamlessly with client-side demo and mock persistence. See [What works today](#what-works-today) and [Known gaps](#known-gaps--next-steps) below.
 
 ---
 
 ## Try it in two minutes
 
-No sign-up required for the preview. Open https://saajha-campus.vercel.app/login and pick a demo role (operates in mock mode until remote Supabase migrations are applied, or sign in via the Supabase Auth form once accounts are provisioned).
+No sign-up required for previewing the interface. Open https://saajha-campus.vercel.app/login and select a demo persona. Note the distinction:
+- **Client Mock / Demo Mode:** Select any of the 6 demo role cards to instantly preview role views and workflows using client-side simulated state.
+- **Real Supabase Auth Session:** Expand the **Institute Supabase Auth Sign-In** form on `/login` to sign in with provisioned demo accounts (e.g. `student@saajha.org` with password `Demo@1234`) to test real session-backed database operations.
+- **Browser-Level Verification:** Real browser-to-database interaction across all tabs and transitions will be confirmed during tomorrow's live testing session.
 
 | Demo role | Fictional user | What to try |
 |---|---|---|
 | **Student** | Aarav Reddy | Has every badge. Open the **Canon EOS 90D DSLR Kit**; all 8 readiness checks pass and **Request access** glows. |
 | **Student 2** | Diya Sharma | Missing the 3D-printer badge. Open the **Prusa MK4 3D Printer** to see the badge check fail, with a "how to fix" link. |
 | **Partner college** | Karthik Rao (Kakatiya Institute) | Sees only the 3 resources shared with partner colleges, and every request needs approval and supervision. |
-| **Owner / Manager / Admin** | Lab in-charge, dept admin, admin | Role-specific consoles implemented in code (`/owner`, `/manager`, `/admin`); live database workflows activate once remote migrations are executed. |
+| **Owner / Manager / Admin** | Lab in-charge, dept admin, admin | Role-specific consoles implemented in code (`/owner`, `/manager`, `/admin`); database-level verification of RPCs has been executed. |
 
 ### Suggested walkthrough
 
@@ -39,24 +42,23 @@ No sign-up required for the preview. Open https://saajha-campus.vercel.app/login
 
 | Area | Status |
 |---|---|
-| Landing page with animated "idle → shared" illustration, how-it-works, trust examples | ✅ Done |
-| Login with 6 one-click demo roles, role switcher, sign-out | ✅ Done (mock session in `localStorage`; Supabase Auth attempt when configured) |
-| Direct email & password Supabase Auth login form (`/login`) | ✅ Implemented in code (requires remote Auth user setup) |
-| App shell: role-based nav, notification bell, theme toggle, mobile menu | ✅ Done |
-| Discovery: search, category filters with counts, date filter, need box, resource cards | ✅ Done (need box uses keyword matching for now, labelled as such) |
-| Resource detail: overview, rules, opening hours, booked slots, slot picker | ✅ Done |
-| **Access-Readiness Check** (all 8 checks from the spec) | ✅ Done in client data layer & implemented as Postgres RPC `readiness_check()` |
-| Explainable waitlist position and priority score | ✅ Done (calculated in UI & RPC) |
-| Partner-college visibility rules | ✅ Done (in UI & RLS policies) |
-| Loading skeletons, empty states, error + retry states | ✅ Done |
-| Light and dark themes, reduced-motion support, keyboard focus, 360 px mobile | ✅ Done |
-| Supabase schema, RLS policies, `security definer` RPCs, range exclusion constraint | ⚙️ Implemented in code (`supabase/migrations/`); remote migrations pending |
-| Real Supabase Auth integration (`@supabase/ssr`, login/logout handlers) | ⚙️ Implemented in code; live authentication pending remote database & user setup |
-| Owner approvals (`/owner`), My Bookings dashboard (`/bookings`), booking detail timeline (`/bookings/[id]`) | ⚙️ Implemented in code (dual-engine: mock fallback + Supabase RPCs); live workflow pending remote DB |
-| Equipment check-out & return with condition reports & Before/After comparison | ⚙️ Implemented in code (`check_out`, `return_booking` RPCs); live workflow pending remote DB |
-| Incidents + manager review (`/manager`), Skill Passport (`/passport`) | ⚠️ Functional UI routes with simulated badge requests & incident queue; full backend sync in progress |
-| Cryptographic hash-chained audit ledger (`/admin`) with "Verify integrity" RPC | ⚙️ Implemented in code (`verify_ledger` SHA-256 RPC & mock engine); live DB verification pending |
-| AI semantic matching, condition diff photo automation, and AI incident summaries | ⏳ Planned / Not implemented (advisory keywords and manual condition inspection used today) |
+| Landing page, responsive UI, motion animations, light/dark themes | `Implemented` |
+| Demo-role selection, role switching, and mock-mode preview | `Implemented` |
+| Direct email & password Supabase Auth integration (`/login`) | `Implemented — live browser verification pending` |
+| Resource discovery, search, category filters, and resource details | `Implemented` |
+| Access-Readiness Check UI and `readiness_check()` database RPC | `Implemented — database verification reported successful` |
+| Explainable waitlist position and priority scoring | `Implemented` |
+| Partner-college visibility rules and RLS policy enforcement | `Implemented — database verification reported successful` |
+| Loading skeletons, empty states, and recoverable error/retry states | `Implemented` |
+| My Bookings dashboard and booking detail timeline (`/bookings/[id]`) | `Implemented — live browser verification pending` |
+| Owner request queue, approval and rejection console (`/owner`) | `Implemented — database verification reported successful` |
+| Equipment check-out, return, and condition reports with before/after view | `Implemented — database verification reported successful` |
+| Manager supervision console (`/manager`) and Admin console (`/admin`) | `Implemented` |
+| Skill Passport (`/passport`) and incident logging workflows | `Partially implemented` (functional UI routes with simulated queues) |
+| SHA-256 hash-chained audit ledger and `verify_ledger()` RPC | `Implemented — database verification reported successful` |
+| PostgreSQL constraints (`btree_gist` range exclusion), triggers, RLS policies | `Implemented — database verification reported successful` |
+| Automated database verification test suite (`verification_tests.sql`) | `Implemented — database verification reported successful` (user-reported SQL Editor success) |
+| AI semantic vector matching, automated photo-difference detection, AI summaries | `Planned` (advisory keywords and manual condition inspection used today) |
 
 ## The Access-Readiness Check
 
@@ -84,7 +86,7 @@ In the database implementation (`supabase/migrations/`), the same checks run **o
 - **Motion** (`motion/react`) for state-change animation; CSS for entrances and scroll reveals
 - **Sonner** for toasts
 - Fonts: Fraunces (display), Inter (UI), JetBrains Mono (data) via `next/font`
-- **Supabase** (`@supabase/supabase-js`, `@supabase/ssr`, PostgreSQL, RLS, Auth): schema migrations, RPCs, and client/server helpers implemented in code; remote database initialization pending
+- **Supabase** (`@supabase/supabase-js`, `@supabase/ssr`, PostgreSQL, RLS, Auth): schema migrations, security-definer RPCs, and client/server helpers. Remote setup executed; automated database verification tests reportedly passed in SQL Editor; browser-level verification scheduled for tomorrow.
 
 ## Run it locally
 
@@ -103,16 +105,18 @@ Other scripts:
 npm run build      # production build (also type-checks)
 npm run start      # serve the production build
 npm run lint       # ESLint
+npm test           # Static SQL & ledger audit validation
 ```
 
-For offline preview, no environment variables are required (runs in client-side mock mode). To connect your real Supabase project, configure `.env.local` (never committed) and apply the migrations:
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://<your-project-ref>.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
-```
-
-See [`SETUP.md`](SETUP.md) for the complete, step-by-step database setup procedure.
+For offline preview, no environment variables are required (runs in client-side mock mode). To connect your real Supabase project:
+1. Configure `.env.local` (never committed to git) with your project URL and standard JWT `anon` key:
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=https://vpggwcgfvxviumbjelbs.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
+   ```
+2. Apply [`supabase/combined_setup.sql`](supabase/combined_setup.sql) via the Supabase SQL Editor.
+3. Run [`supabase/verification_tests.sql`](supabase/verification_tests.sql) to confirm all 9 assertions pass.
+4. See [`SETUP.md`](SETUP.md) for the complete, step-by-step procedure.
 
 ## Project structure
 
@@ -162,8 +166,8 @@ The full product spec is in [`CLAUDE.md`](CLAUDE.md).
 
 ## Known gaps & next steps
 
-- **Remote Supabase database initialization pending:** Schema migrations, RLS policies, and RPC functions are implemented under `supabase/migrations/`, but have not yet been executed against the remote Supabase project. The application currently defaults to local mock persistence until remote migrations and seed data are applied via the Supabase SQL Editor (see [`SETUP.md`](SETUP.md)).
-- **Demo Auth user setup:** Real Supabase Auth login handlers are integrated in code; live password authentication requires running `supabase/create_auth_users.sql` or provisioning accounts in the Supabase Dashboard.
+- **Browser-to-database end-to-end testing:** While SQL migrations, RLS policies, RPCs, and automated database test assertions have reportedly completed in the Supabase SQL Editor, browser-level verification across real session cookies, the Access-Readiness Check on live data, and the full interactive booking lifecycle (request &rarr; owner approval &rarr; check-out &rarr; return) is scheduled for tomorrow's testing session.
+- **Production Vercel deployment sync:** Confirming production environment variables (`NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`) on Vercel and verifying live responses against `https://saajha-campus.vercel.app`.
 - **AI features are advisory / planned:** Describe-what-you-need currently uses keyword filtering; automated condition-diff inspection and AI incident summaries are planned for future releases.
 - **Cross-browser & device verification:** Tested in modern Chrome and Edge desktop views; further touch-device, Safari, and Firefox validation is planned.
 
