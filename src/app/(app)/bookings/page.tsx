@@ -20,6 +20,7 @@ export default function BookingsPage() {
   const [modalStage, setModalStage] = useState<"check_out" | "return">("check_out");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [version, setVersion] = useState(0);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
     let ignore = false;
@@ -28,10 +29,14 @@ export default function BookingsPage() {
         if (!ignore) {
           setBookings(data);
           setLoading(false);
+          setFetchError(null);
         }
       })
-      .catch(() => {
-        if (!ignore) setLoading(false);
+      .catch((err) => {
+        if (!ignore) {
+          setLoading(false);
+          setFetchError(err instanceof Error ? err.message : "Failed to load bookings.");
+        }
       });
     return () => {
       ignore = true;
@@ -98,6 +103,20 @@ export default function BookingsPage() {
           </button>
         ))}
       </div>
+
+      {/* Error alert if backend request fails */}
+      {fetchError && (
+        <div role="alert" className="rounded-xl border border-danger/30 bg-danger-soft p-4 text-sm text-danger-ink">
+          <p className="font-medium">Could not load bookings from database</p>
+          <p className="mt-1 font-mono text-xs opacity-90 break-words">{fetchError}</p>
+          <button
+            onClick={refresh}
+            className="mt-3 rounded-md border border-line bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       {/* Bookings List */}
       {loading ? (

@@ -59,8 +59,8 @@ export function EmailLoginForm() {
         if (profile?.role === "owner") role = "owner";
         else if (profile?.role === "manager") role = "manager";
         else if (profile?.role === "admin") role = "admin";
-        else if (data.user.email === "student2@saajha.demo") role = "student2";
-        else if (data.user.email === "partner@saajha.demo") role = "partner";
+        else if (data.user.email?.startsWith("student2@")) role = "student2";
+        else if (data.user.email?.startsWith("partner@")) role = "partner";
 
         setDemoRole(role);
         toast.success(`Signed in as ${profile?.full_name ?? data.user.email}`, {
@@ -103,7 +103,7 @@ export function EmailLoginForm() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="e.g. student@saajha.demo"
+                placeholder="e.g. student@saajha.org"
                 className="w-full rounded-lg border border-line bg-background py-2 pl-9 pr-3 text-sm text-foreground focus:border-indigo focus:outline-none"
               />
             </div>

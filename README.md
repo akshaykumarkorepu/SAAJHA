@@ -8,20 +8,20 @@ Saajha lets NIT Warangal labs and clubs safely share idle equipment and rooms. B
 - **Hackathon:** Code Conqueror India 2026
 - **Team CTRL + AI:** Akshay Kumar Korepu (Backend + AI) · Ragula Thirumal (Frontend + UI)
 
-> **Prototype status:** the interface runs end to end on **fictional mock data** in the browser. The Supabase backend (database rules, auth, audit ledger) is the next build step. See [What works today](#what-works-today) and [Known gaps](#known-gaps--next-steps) below.
+> **Current status:** The application codebase includes the full UI, Supabase client/server integration, database schema, security-definer RPCs, and verification test scripts. When unconfigured or before remote migrations run, the app operates in offline mock/demo mode. Live database persistence is activated once remote Supabase migrations and Auth users are initialized. See [What works today](#what-works-today) and [Known gaps](#known-gaps--next-steps) below.
 
 ---
 
 ## Try it in two minutes
 
-No sign-up. Open https://saajha-campus.vercel.app/login and pick a demo role.
+No sign-up required for the preview. Open https://saajha-campus.vercel.app/login and pick a demo role (operates in mock mode until remote Supabase migrations are applied, or sign in via the Supabase Auth form once accounts are provisioned).
 
 | Demo role | Fictional user | What to try |
 |---|---|---|
 | **Student** | Aarav Reddy | Has every badge. Open the **Canon EOS 90D DSLR Kit**; all 8 readiness checks pass and **Request access** glows. |
 | **Student 2** | Diya Sharma | Missing the 3D-printer badge. Open the **Prusa MK4 3D Printer** to see the badge check fail, with a "how to fix" link. |
 | **Partner college** | Karthik Rao (Kakatiya Institute) | Sees only the 3 resources shared with partner colleges, and every request needs approval and supervision. |
-| **Owner / Manager / Admin** | Lab in-charge, dept admin, admin | Role-specific navigation; their consoles are the next build (see below). |
+| **Owner / Manager / Admin** | Lab in-charge, dept admin, admin | Role-specific consoles implemented in code (`/owner`, `/manager`, `/admin`); live database workflows activate once remote migrations are executed. |
 
 ### Suggested walkthrough
 
@@ -40,20 +40,23 @@ No sign-up. Open https://saajha-campus.vercel.app/login and pick a demo role.
 | Area | Status |
 |---|---|
 | Landing page with animated "idle → shared" illustration, how-it-works, trust examples | ✅ Done |
-| Login with 6 one-click demo roles, role switcher, sign-out | ✅ Done (mock session in `localStorage`) |
+| Login with 6 one-click demo roles, role switcher, sign-out | ✅ Done (mock session in `localStorage`; Supabase Auth attempt when configured) |
+| Direct email & password Supabase Auth login form (`/login`) | ✅ Implemented in code (requires remote Auth user setup) |
 | App shell: role-based nav, notification bell, theme toggle, mobile menu | ✅ Done |
 | Discovery: search, category filters with counts, date filter, need box, resource cards | ✅ Done (need box uses keyword matching for now, labelled as such) |
 | Resource detail: overview, rules, opening hours, booked slots, slot picker | ✅ Done |
-| **Access-Readiness Check** (all 8 checks from the spec) | ✅ Done, computed in `src/lib/data.ts` (mock of the future `readiness_check()` RPC) |
-| Explainable waitlist position and priority score | ✅ Done (shown, not yet persisted) |
-| Partner-college visibility rules | ✅ Done |
+| **Access-Readiness Check** (all 8 checks from the spec) | ✅ Done in client data layer & implemented as Postgres RPC `readiness_check()` |
+| Explainable waitlist position and priority score | ✅ Done (calculated in UI & RPC) |
+| Partner-college visibility rules | ✅ Done (in UI & RLS policies) |
 | Loading skeletons, empty states, error + retry states | ✅ Done |
 | Light and dark themes, reduced-motion support, keyboard focus, 360 px mobile | ✅ Done |
-| Supabase schema, RLS, `security definer` RPCs, real auth | ⏳ Next |
-| Owner approvals, My bookings, check-out / return with condition reports | ⏳ Next (routes exist as "Coming in the next build") |
-| Incidents + manager review, Skill Passport, badge issuing | ⏳ Next |
-| Hash-chained audit ledger with "Verify integrity", fairness dashboard | ⏳ Next |
-| AI matching, condition diff, incident summary (advisory only) | ⏳ Next |
+| Supabase schema, RLS policies, `security definer` RPCs, range exclusion constraint | ⚙️ Implemented in code (`supabase/migrations/`); remote migrations pending |
+| Real Supabase Auth integration (`@supabase/ssr`, login/logout handlers) | ⚙️ Implemented in code; live authentication pending remote database & user setup |
+| Owner approvals (`/owner`), My Bookings dashboard (`/bookings`), booking detail timeline (`/bookings/[id]`) | ⚙️ Implemented in code (dual-engine: mock fallback + Supabase RPCs); live workflow pending remote DB |
+| Equipment check-out & return with condition reports & Before/After comparison | ⚙️ Implemented in code (`check_out`, `return_booking` RPCs); live workflow pending remote DB |
+| Incidents + manager review (`/manager`), Skill Passport (`/passport`) | ⚠️ Functional UI routes with simulated badge requests & incident queue; full backend sync in progress |
+| Cryptographic hash-chained audit ledger (`/admin`) with "Verify integrity" RPC | ⚙️ Implemented in code (`verify_ledger` SHA-256 RPC & mock engine); live DB verification pending |
+| AI semantic matching, condition diff photo automation, and AI incident summaries | ⏳ Planned / Not implemented (advisory keywords and manual condition inspection used today) |
 
 ## The Access-Readiness Check
 
@@ -70,7 +73,7 @@ Every request is checked against eight rules. Each row says why it passed or fai
 
 Waitlist priority: `score = 100 − 10 × (bookings in last 14 days) + 0.2 × reliability + minutes waiting / 60`, ties broken first-come-first-served.
 
-In the planned backend the same checks run again **on the server** inside `request_booking()`, and a Postgres exclusion constraint makes double booking impossible, regardless of the UI.
+In the database implementation (`supabase/migrations/`), the same checks run **on the server** inside `request_booking()` and `readiness_check()`, and a PostgreSQL exclusion constraint (`no_double_booking` via `btree_gist`) makes concurrent double bookings impossible at the database level.
 
 ---
 
@@ -81,7 +84,7 @@ In the planned backend the same checks run again **on the server** inside `reque
 - **Motion** (`motion/react`) for state-change animation; CSS for entrances and scroll reveals
 - **Sonner** for toasts
 - Fonts: Fraunces (display), Inter (UI), JetBrains Mono (data) via `next/font`
-- **Supabase** (`@supabase/supabase-js`, `@supabase/ssr`): installed, wiring is the next step
+- **Supabase** (`@supabase/supabase-js`, `@supabase/ssr`, PostgreSQL, RLS, Auth): schema migrations, RPCs, and client/server helpers implemented in code; remote database initialization pending
 
 ## Run it locally
 
@@ -102,12 +105,14 @@ npm run start      # serve the production build
 npm run lint       # ESLint
 ```
 
-No environment variables are needed yet. When the backend lands, these will be set in Vercel and `.env.local` (never committed):
+For offline preview, no environment variables are required (runs in client-side mock mode). To connect your real Supabase project, configure `.env.local` (never committed) and apply the migrations:
 
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://<your-project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 ```
-NEXT_PUBLIC_SUPABASE_URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY
-```
+
+See [`SETUP.md`](SETUP.md) for the complete, step-by-step database setup procedure.
 
 ## Project structure
 
@@ -115,27 +120,39 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY
 src/
   app/
     page.tsx                 Landing page
-    login/                   Demo-role picker
-    (app)/                   Signed-in pages (gated on the demo session)
+    login/                   Demo-role picker & Supabase Auth sign-in
+    (app)/                   Signed-in pages (gated on the session)
       explore/               Discovery
       resources/[id]/        Resource detail + readiness check
-      bookings, passport, owner, manager, admin/   Placeholders for the next build
+      bookings/              My Bookings dashboard + detail timeline ([id])
+      owner/                 Owner request queue, approvals & rejection modal
+      manager/               Supervision desk, badge queue & incident logs
+      admin/                 Admin console & SHA-256 audit ledger verification
+      passport/              Skill Passport credentials & certification upload
   components/
     landing/                 Header, hero illustration
     explore/                 Explorer, resource card, need box
     resource/                Detail page, slot picker, readiness panel
+    bookings/                Handover & return condition report modal
     shell/                   App shell, nav, bell, session gate
     saajha/                  Shared: logo, status chip, empty/error states, skeletons, theme, reveal
     ui/                      shadcn/ui components
   lib/
-    types.ts                 Row types matching the planned Postgres schema
-    data.ts                  The only data-access layer (async; becomes Supabase RPC calls)
+    types.ts                 Row types matching the Supabase Postgres schema
+    data.ts                  Dual-engine data-access layer (Supabase RPCs + mock fallback)
     mock.ts                  Fictional seed data (only data.ts imports it)
     motion.ts                Shared timing, easing and variants
     slots.ts                 Slot maths and formatting
+    supabase/                Browser and server client helpers (@supabase/ssr)
+supabase/
+  migrations/                Versioned Postgres DDL, RPCs, GiST exclusion constraint & RLS
+  seed.sql                   NIT Warangal demo equipment, profiles and badges
+  create_auth_users.sql      Supabase Auth accounts helper (Demo@1234)
+  verification_tests.sql     Automated 9-stage database verification test suite
+  combined_setup.sql         Consolidated one-click setup script for Supabase SQL Editor
 ```
 
-UI components never import `mock.ts` directly, so swapping in Supabase only touches `src/lib/data.ts`.
+UI components never import `mock.ts` directly, so all data operations route through `src/lib/data.ts`.
 
 ## Design
 
@@ -145,11 +162,11 @@ The full product spec is in [`CLAUDE.md`](CLAUDE.md).
 
 ## Known gaps & next steps
 
-- **No backend yet.** Requests, waitlist joins and role sessions are mocked in the browser and reset on reload.
-- Some landing copy (hash-chained history, database-level double-booking guard, insert-only condition reports) describes the planned backend, which isn't built yet.
-- The need box uses keyword matching; the AI version comes after the core flow.
-- Not yet tested on real touch devices or in Safari and Firefox.
+- **Remote Supabase database initialization pending:** Schema migrations, RLS policies, and RPC functions are implemented under `supabase/migrations/`, but have not yet been executed against the remote Supabase project. The application currently defaults to local mock persistence until remote migrations and seed data are applied via the Supabase SQL Editor (see [`SETUP.md`](SETUP.md)).
+- **Demo Auth user setup:** Real Supabase Auth login handlers are integrated in code; live password authentication requires running `supabase/create_auth_users.sql` or provisioning accounts in the Supabase Dashboard.
+- **AI features are advisory / planned:** Describe-what-you-need currently uses keyword filtering; automated condition-diff inspection and AI incident summaries are planned for future releases.
+- **Cross-browser & device verification:** Tested in modern Chrome and Edge desktop views; further touch-device, Safari, and Firefox validation is planned.
 
 ## Disclosure
 
-Built with Next.js, Supabase (planned), shadcn/ui, Base UI, Tailwind CSS, Motion, Sonner and lucide-react. An LLM API is planned for advisory AI features. **Claude Code** was used during development. All people, bookings and data in the demo are fictional.
+Built with Next.js, Supabase, shadcn/ui, Base UI, Tailwind CSS, Motion, Sonner and lucide-react. An LLM API is planned for advisory AI features. **Claude Code** was used during development. All people, bookings and data in the demo are fictional.

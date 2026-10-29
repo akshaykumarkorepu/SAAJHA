@@ -27,6 +27,8 @@ export default function AdminPage() {
   } | null>(null);
   const [copiedHash, setCopiedHash] = useState<string | null>(null);
   const [stats, setStats] = useState({ totalBookings: 0, activeBookings: 0, totalResources: 0 });
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [version, setVersion] = useState(0);
 
   useEffect(() => {
     let ignore = false;
@@ -40,16 +42,20 @@ export default function AdminPage() {
             totalResources: res.length,
           });
           setLoading(false);
+          setFetchError(null);
         }
       })
-      .catch(() => {
-        if (!ignore) setLoading(false);
+      .catch((err) => {
+        if (!ignore) {
+          setLoading(false);
+          setFetchError(err instanceof Error ? err.message : "Failed to load audit events.");
+        }
       });
 
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [version]);
 
   async function handleVerify() {
     setVerifying(true);
@@ -98,6 +104,22 @@ export default function AdminPage() {
           {verifying ? "Recomputing chain..." : "Verify Ledger Integrity"}
         </Button>
       </div>
+
+      {fetchError && (
+        <div role="alert" className="rounded-xl border border-danger/30 bg-danger-soft p-4 text-sm text-danger-ink">
+          <p className="font-medium">Could not load audit ledger from database</p>
+          <p className="mt-1 font-mono text-xs opacity-90 break-words">{fetchError}</p>
+          <button
+            onClick={() => {
+              setLoading(true);
+              setVersion((v) => v + 1);
+            }}
+            className="mt-3 rounded-md border border-line bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       {/* Verification Result Banner */}
       {verifyResult && (

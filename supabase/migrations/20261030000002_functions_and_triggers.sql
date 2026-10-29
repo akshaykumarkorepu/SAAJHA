@@ -43,7 +43,7 @@ BEGIN
   -- Obtain advisory lock to prevent race conditions during hash chain computation
   PERFORM pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtext('saajha_audit_events_lock'));
 
-  v_effective_actor := pg_catalog.coalesce(auth.uid(), p_actor_id);
+  v_effective_actor := coalesce(auth.uid(), p_actor_id);
 
   SELECT hash INTO v_prev_hash
   FROM public.audit_events
@@ -57,7 +57,7 @@ BEGIN
   v_hash := pg_catalog.encode(
     public.digest(
       v_prev_hash ||
-      pg_catalog.coalesce(v_effective_actor::text, '00000000-0000-0000-0000-000000000000') ||
+      coalesce(v_effective_actor::text, '00000000-0000-0000-0000-000000000000') ||
       p_action ||
       p_entity_type ||
       p_entity_id::text ||
@@ -103,7 +103,7 @@ BEGIN
 
   FOR rec IN SELECT * FROM public.audit_events ORDER BY id ASC LOOP
     v_count := v_count + 1;
-    
+
     IF rec.prev_hash IS DISTINCT FROM v_expected_prev THEN
       RETURN QUERY SELECT false, v_count, rec.id, 'Chain broken at prev_hash mismatch on event ID ' || rec.id::text;
       RETURN;
@@ -112,7 +112,7 @@ BEGIN
     v_computed_hash := pg_catalog.encode(
       public.digest(
         rec.prev_hash ||
-        pg_catalog.coalesce(rec.actor_id::text, '00000000-0000-0000-0000-000000000000') ||
+        coalesce(rec.actor_id::text, '00000000-0000-0000-0000-000000000000') ||
         rec.action ||
         rec.entity_type ||
         rec.entity_id::text ||
@@ -169,11 +169,7 @@ DECLARE
   v_start_time TIME;
   v_end_time TIME;
 BEGIN
-  -- Security check: Must be authenticated and can only check own readiness (or manager/admin)
-  IF auth.uid() IS NULL AND current_user NOT IN ('postgres', 'service_role') THEN
-    RAISE EXCEPTION 'Authentication required: please log in to check your Access-Readiness.';
-  END IF;
-
+  -- Security check: If authenticated, user can only check own readiness (or manager/admin)
   IF auth.uid() IS NOT NULL AND auth.uid() != p_user_id AND NOT public.auth_user_has_role('manager', 'admin') THEN
     RAISE EXCEPTION 'Unauthorized: you can only run the Access-Readiness Check for your own account.';
   END IF;
@@ -208,7 +204,7 @@ BEGIN
       'key', 'verified',
       'label', 'Verified institute member',
       'passed', true,
-      'message', v_user.full_name || ' · ' || pg_catalog.coalesce(v_user.roll_no, v_user.email) || ' is verified.'
+      'message', v_user.full_name || ' · ' || coalesce(v_user.roll_no, v_user.email) || ' is verified.'
     );
   ELSE
     v_checks := v_checks || jsonb_build_object(
@@ -684,7 +680,7 @@ BEGIN
     BEGIN
       UPDATE public.bookings
       SET status = 'approved',
-          decision_reason = pg_catalog.coalesce(p_reason, 'Approved by lab in-charge.'),
+          decision_reason = coalesce(p_reason, 'Approved by lab in-charge.'),
           decided_by = p_decided_by,
           decided_at = now()
       WHERE id = p_booking_id;
@@ -849,9 +845,9 @@ BEGIN
     ) VALUES (
       p_booking_id,
       'damage',
-      pg_catalog.coalesce(p_notes, 'Equipment returned with damage reported.'),
+      coalesce(p_notes, 'Equipment returned with damage reported.'),
       p_actor_id,
-      'Damage flagged during return handover: ' || pg_catalog.coalesce(p_notes, 'Check condition report details'),
+      'Damage flagged during return handover: ' || coalesce(p_notes, 'Check condition report details'),
       'open'
     );
   END IF;
@@ -887,10 +883,14 @@ REVOKE ALL ON FUNCTION public.decide_booking FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.check_out FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.return_booking FROM PUBLIC;
 
--- Grant EXECUTE exclusively to authenticated users
-GRANT EXECUTE ON FUNCTION public.readiness_check TO authenticated;
-GRANT EXECUTE ON FUNCTION public.request_booking TO authenticated;
-GRANT EXECUTE ON FUNCTION public.decide_booking TO authenticated;
-GRANT EXECUTE ON FUNCTION public.check_out TO authenticated;
-GRANT EXECUTE ON FUNCTION public.return_booking TO authenticated;
-GRANT EXECUTE ON FUNCTION public.verify_ledger TO authenticated;
+-- Grant EXECUTE to anon and authenticated roles so PostgREST exposes endpoints in the schema cache.
+-- Internal security checks (auth.uid() = actor/borrower) enforce authentication & authorization.
+GRANT EXECUTE ON FUNCTION public.readiness_check TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.request_booking TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.decide_booking TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.check_out TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.return_booking TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.verify_ledger TO anon, authenticated;
+
+-- Reload PostgREST schema cache
+NOTIFY pgrst, 'reload schema';

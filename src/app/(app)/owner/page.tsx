@@ -26,6 +26,7 @@ export default function OwnerPage() {
   const [resources, setResources] = useState<ResourceView[]>([]);
   const [loading, setLoading] = useState(true);
   const [version, setVersion] = useState(0);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   // Rejection dialog state
   const [rejectingBooking, setRejectingBooking] = useState<BookingView | null>(null);
@@ -48,10 +49,14 @@ export default function OwnerPage() {
           setBookings(allBookings);
           setResources(allRes.filter((r) => r.owner.id === profile.id || profile.role === "admin"));
           setLoading(false);
+          setFetchError(null);
         }
       })
-      .catch(() => {
-        if (!ignore) setLoading(false);
+      .catch((err) => {
+        if (!ignore) {
+          setLoading(false);
+          setFetchError(err instanceof Error ? err.message : "Failed to load owner data.");
+        }
       });
 
     return () => {
@@ -130,6 +135,22 @@ export default function OwnerPage() {
           </div>
         </div>
       </div>
+
+      {fetchError && (
+        <div role="alert" className="rounded-xl border border-danger/30 bg-danger-soft p-4 text-sm text-danger-ink">
+          <p className="font-medium">Could not load owner console data from database</p>
+          <p className="mt-1 font-mono text-xs opacity-90 break-words">{fetchError}</p>
+          <button
+            onClick={() => {
+              setLoading(true);
+              setVersion((v) => v + 1);
+            }}
+            className="mt-3 rounded-md border border-line bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       {/* Section 1: Pending Requests Queue */}
       <div className="space-y-4">

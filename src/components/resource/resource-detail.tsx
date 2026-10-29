@@ -331,6 +331,7 @@ function BookingPanel({
   const slot = useMemo(() => makeSlot(dayDate(today, choice.day), choice.hour, choice.hours), [today, choice]);
   const [result, setResult] = useState<ReadinessResult | null>(null);
   const [checkFailed, setCheckFailed] = useState(false);
+  const [checkError, setCheckError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [settled, setSettled] = useState(false);
   const [sent, setSent] = useState<{ status: BookingStatus; position?: number; slot: Slot } | null>(null);
@@ -345,12 +346,17 @@ function BookingPanel({
     let live = true;
     runReadinessCheck(r.id, profile.id, slot).then(
       (res) => live && setResult(res),
-      () => live && setCheckFailed(true),
+      (err) => {
+        if (!live) return;
+        setCheckFailed(true);
+        setCheckError(err instanceof Error ? err.message : "Database check failed.");
+      },
     );
     return () => {
       live = false;
       setResult(null);
       setCheckFailed(false);
+      setCheckError(null);
     };
   }, [r.id, profile.id, slot, attempt]);
 
@@ -446,10 +452,19 @@ function BookingPanel({
         <div className="mt-3">
           {checkFailed ? (
             <div role="alert" className="rounded-xl border border-danger/30 bg-danger-soft p-4 text-sm text-danger-ink">
-              <p className="font-medium">The readiness check didn&apos;t finish.</p>
-              <p className="mt-0.5 text-xs">Nothing was sent. Run it again to see where you stand.</p>
+              <p className="font-medium">Readiness check could not be completed</p>
+              {checkError && (
+                <p className="mt-1 font-mono text-xs opacity-90 break-words">{checkError}</p>
+              )}
+              <p className="mt-2 text-xs opacity-80">
+                {checkError?.includes("schema cache")
+                  ? "The database functions have not been applied yet. Run supabase/combined_setup.sql in the Supabase SQL Editor."
+                  : checkError?.includes("Authentication required")
+                  ? "Please sign in with your Supabase account on /login to run real readiness checks."
+                  : "Check your database connection or retry."}
+              </p>
               <Button variant="outline" className="mt-3 h-8" onClick={() => setAttempt((n) => n + 1)}>
-                Run the check again
+                Retry check
               </Button>
             </div>
           ) : (

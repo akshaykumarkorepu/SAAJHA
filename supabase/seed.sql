@@ -19,7 +19,7 @@ INSERT INTO public.profiles (id, full_name, email, role, institution_id, departm
   ('00000000-0000-4000-a000-000000000107', 'Ravi Teja', 'makerspace@saajha.demo', 'owner', '00000000-0000-4000-a000-000000000001', 'Makerspace (Mechanical)', NULL, true, 10, 100),
   ('00000000-0000-4000-a000-000000000108', 'Anitha G.', 'spaces@saajha.demo', 'owner', '00000000-0000-4000-a000-000000000001', 'Academic Section · Rooms', NULL, true, 10, 100),
   ('00000000-0000-4000-a000-000000000109', 'Meera Iyer', 'meera@saajha.demo', 'student', '00000000-0000-4000-a000-000000000001', 'Civil', '22CEB0B09', true, 10, 100)
-ON CONFLICT (id) DO UPDATE SET full_name = EXCLUDED.full_name, role = EXCLUDED.role;
+ON CONFLICT (id) DO UPDATE SET full_name = EXCLUDED.full_name, role = EXCLUDED.role, email = EXCLUDED.email;
 
 -- 3. Badges
 INSERT INTO public.badges (id, code, name, description) VALUES
@@ -61,15 +61,22 @@ INSERT INTO public.resource_badges (resource_id, badge_id) VALUES
   ('00000000-0000-4000-a000-000000000307', '00000000-0000-4000-a000-000000000201')  -- Soldering needs LAB_SAFETY_1
 ON CONFLICT (resource_id, badge_id) DO NOTHING;
 
--- 7. Availability Windows (Mon-Fri 09:00 - 18:00 default)
+-- 7. Availability Windows (Mon-Sat 09:00 - 18:00 default)
 INSERT INTO public.availability_windows (resource_id, weekday, start_time, end_time)
 SELECT r.id, w.day, '09:00'::time, '18:00'::time
 FROM public.resources r
 CROSS JOIN generate_series(1, 6) AS w(day)
-ON CONFLICT DO NOTHING;
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.availability_windows aw
+  WHERE aw.resource_id = r.id
+    AND aw.weekday = w.day
+    AND aw.start_time = '09:00'::time
+    AND aw.end_time = '18:00'::time
+);
 
 -- 8. Notifications
-INSERT INTO public.notifications (user_id, title, body, link, read) VALUES
-  ('00000000-0000-4000-a000-000000000101', 'Welcome to Saajha', 'Discover lab equipment and verify your access-readiness.', '/explore', false),
-  ('00000000-0000-4000-a000-000000000104', 'Lab in-charge console active', 'Review requests and confirm condition handovers.', '/owner', false);
+INSERT INTO public.notifications (id, user_id, title, body, link, read) VALUES
+  ('00000000-0000-4000-a000-000000000901', '00000000-0000-4000-a000-000000000101', 'Welcome to Saajha', 'Discover lab equipment and verify your access-readiness.', '/explore', false),
+  ('00000000-0000-4000-a000-000000000902', '00000000-0000-4000-a000-000000000104', 'Lab in-charge console active', 'Review requests and confirm condition handovers.', '/owner', false)
+ON CONFLICT (id) DO NOTHING;
 

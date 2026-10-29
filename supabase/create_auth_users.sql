@@ -5,12 +5,12 @@
 DO $$
 DECLARE
   v_users JSONB := '[
-    {"id": "00000000-0000-4000-a000-000000000101", "email": "student@saajha.demo", "role": "student"},
-    {"id": "00000000-0000-4000-a000-000000000102", "email": "student2@saajha.demo", "role": "student"},
-    {"id": "00000000-0000-4000-a000-000000000103", "email": "partner@saajha.demo", "role": "student"},
-    {"id": "00000000-0000-4000-a000-000000000104", "email": "owner@saajha.demo", "role": "owner"},
-    {"id": "00000000-0000-4000-a000-000000000105", "email": "manager@saajha.demo", "role": "manager"},
-    {"id": "00000000-0000-4000-a000-000000000106", "email": "admin@saajha.demo", "role": "admin"}
+    {"id": "00000000-0000-4000-a000-000000000101", "email": "student@saajha.org", "role": "student"},
+    {"id": "00000000-0000-4000-a000-000000000102", "email": "student2@saajha.org", "role": "student"},
+    {"id": "00000000-0000-4000-a000-000000000103", "email": "partner@saajha.org", "role": "student"},
+    {"id": "00000000-0000-4000-a000-000000000104", "email": "owner@saajha.org", "role": "owner"},
+    {"id": "00000000-0000-4000-a000-000000000105", "email": "manager@saajha.org", "role": "manager"},
+    {"id": "00000000-0000-4000-a000-000000000106", "email": "admin@saajha.org", "role": "admin"}
   ]'::jsonb;
   u JSONB;
   v_pw_hash TEXT;
@@ -42,7 +42,7 @@ BEGIN
         updated_at
       ) VALUES (
         (u->>'id')::uuid,
-        '00000000-0000-0000-0000-000000000000',
+        '00000000-0000-0000-0000-000000000000'::uuid,
         'authenticated',
         'authenticated',
         u->>'email',
@@ -54,6 +54,12 @@ BEGIN
         now()
       );
     END IF;
+
+    -- Ensure account is confirmed and has demo password
+    UPDATE auth.users
+    SET email_confirmed_at = coalesce(email_confirmed_at, now()),
+        encrypted_password = v_pw_hash
+    WHERE id = (u->>'id')::uuid OR email = u->>'email';
 
     -- Add matching identity for Supabase Auth email provider if missing
     IF NOT EXISTS (
@@ -70,7 +76,7 @@ BEGIN
         created_at,
         updated_at
       ) VALUES (
-        u->>'id',
+        (u->>'id')::uuid,
         (u->>'id')::uuid,
         jsonb_build_object('sub', u->>'id', 'email', u->>'email'),
         'email',

@@ -95,6 +95,13 @@ BEGIN
   ASSERT v_ledger_check.valid = true, 'Audit ledger integrity check failed!';
   RAISE NOTICE '  Passed: %', v_ledger_check.message;
 
+  -- Safe cleanup of test records so demo data remains pristine
+  DELETE FROM public.incidents WHERE booking_id = v_booking_id;
+  DELETE FROM public.condition_reports WHERE booking_id = v_booking_id;
+  DELETE FROM public.notifications WHERE body LIKE '%Prusa MK4%' OR body LIKE '%Robotics club%';
+  DELETE FROM public.bookings WHERE id = v_booking_id;
+  RAISE NOTICE '  Cleaned up verification test records.';
+
   RAISE NOTICE '=======================================================';
   RAISE NOTICE 'ALL 9 SAAJHA VERIFICATION TESTS COMPLETED SUCCESSFULLY!';
   RAISE NOTICE '=======================================================';
