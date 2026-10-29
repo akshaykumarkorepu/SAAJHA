@@ -1,14 +1,35 @@
 -- Migration 002: Core RPC Functions, Booking Lifecycle, and Audit Ledger
 -- Enforces business logic inside the database with security definer functions
--- Hardened with SET search_path = pg_catalog, public, pg_temp and strict auth.uid() checks
+-- Hardened with SET search_path = pg_catalog, public, extensions, pg_temp and strict auth.uid() checks
 
--- 0. Helper to check if current auth user has a specific role (Required by readiness_check & RLS)
+-- 0. Compatibility wrappers: Route public.digest to extensions.digest across bytea/text signatures
+CREATE OR REPLACE FUNCTION public.digest(data bytea, type text)
+RETURNS bytea
+LANGUAGE sql
+IMMUTABLE
+PARALLEL SAFE
+SET search_path = pg_catalog, extensions, public, pg_temp
+AS $$
+  SELECT extensions.digest(data, type);
+$$;
+
+CREATE OR REPLACE FUNCTION public.digest(data text, type text)
+RETURNS bytea
+LANGUAGE sql
+IMMUTABLE
+PARALLEL SAFE
+SET search_path = pg_catalog, extensions, public, pg_temp
+AS $$
+  SELECT extensions.digest(convert_to(data, 'UTF8'), type);
+$$;
+
+-- 0.1 Helper to check if current auth user has a specific role (Required by readiness_check & RLS)
 CREATE OR REPLACE FUNCTION public.auth_user_has_role(VARIADIC allowed_roles public.user_role[])
 RETURNS BOOLEAN
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
-SET search_path = pg_catalog, public, pg_temp
+SET search_path = pg_catalog, public, extensions, pg_temp
 AS $$
   SELECT EXISTS (
     SELECT 1 FROM public.profiles
@@ -31,7 +52,7 @@ CREATE OR REPLACE FUNCTION public.record_audit_event(
 RETURNS BIGINT
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = pg_catalog, public, pg_temp
+SET search_path = pg_catalog, public, extensions, pg_temp
 AS $$
 DECLARE
   v_prev_hash TEXT;
@@ -55,14 +76,17 @@ BEGIN
   END IF;
 
   v_hash := pg_catalog.encode(
-    public.digest(
-      v_prev_hash ||
-      coalesce(v_effective_actor::text, '00000000-0000-0000-0000-000000000000') ||
-      p_action ||
-      p_entity_type ||
-      p_entity_id::text ||
-      p_details::text ||
-      v_created_at::text,
+    digest(
+      convert_to(
+        v_prev_hash ||
+        coalesce(v_effective_actor::text, '00000000-0000-0000-0000-000000000000') ||
+        p_action ||
+        p_entity_type ||
+        p_entity_id::text ||
+        p_details::text ||
+        v_created_at::text,
+        'UTF8'
+      ),
       'sha256'
     ),
     'hex'
@@ -88,7 +112,7 @@ RETURNS TABLE (
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = pg_catalog, public, pg_temp
+SET search_path = pg_catalog, public, extensions, pg_temp
 AS $$
 DECLARE
   rec RECORD;
@@ -110,14 +134,17 @@ BEGIN
     END IF;
 
     v_computed_hash := pg_catalog.encode(
-      public.digest(
-        rec.prev_hash ||
-        coalesce(rec.actor_id::text, '00000000-0000-0000-0000-000000000000') ||
-        rec.action ||
-        rec.entity_type ||
-        rec.entity_id::text ||
-        rec.details::text ||
-        rec.created_at::text,
+      digest(
+        convert_to(
+          rec.prev_hash ||
+          coalesce(rec.actor_id::text, '00000000-0000-0000-0000-000000000000') ||
+          rec.action ||
+          rec.entity_type ||
+          rec.entity_id::text ||
+          rec.details::text ||
+          rec.created_at::text,
+          'UTF8'
+        ),
         'sha256'
       ),
       'hex'
@@ -145,7 +172,7 @@ CREATE OR REPLACE FUNCTION public.readiness_check(
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = pg_catalog, public, pg_temp
+SET search_path = pg_catalog, public, extensions, pg_temp
 AS $$
 DECLARE
   v_user public.profiles%ROWTYPE;
@@ -462,7 +489,7 @@ CREATE OR REPLACE FUNCTION public.request_booking(
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = pg_catalog, public, pg_temp
+SET search_path = pg_catalog, public, extensions, pg_temp
 AS $$
 DECLARE
   v_readiness JSONB;
@@ -599,7 +626,7 @@ CREATE OR REPLACE FUNCTION public.decide_booking(
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = pg_catalog, public, pg_temp
+SET search_path = pg_catalog, public, extensions, pg_temp
 AS $$
 DECLARE
   v_booking public.bookings%ROWTYPE;
@@ -725,7 +752,7 @@ CREATE OR REPLACE FUNCTION public.check_out(
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = pg_catalog, public, pg_temp
+SET search_path = pg_catalog, public, extensions, pg_temp
 AS $$
 DECLARE
   v_booking public.bookings%ROWTYPE;
@@ -798,7 +825,7 @@ CREATE OR REPLACE FUNCTION public.return_booking(
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = pg_catalog, public, pg_temp
+SET search_path = pg_catalog, public, extensions, pg_temp
 AS $$
 DECLARE
   v_booking public.bookings%ROWTYPE;

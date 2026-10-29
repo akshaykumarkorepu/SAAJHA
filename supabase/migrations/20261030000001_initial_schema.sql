@@ -4,6 +4,27 @@
 CREATE EXTENSION IF NOT EXISTS btree_gist;
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
+-- Compatibility wrappers: Route public.digest to extensions.digest across bytea/text signatures
+CREATE OR REPLACE FUNCTION public.digest(data bytea, type text)
+RETURNS bytea
+LANGUAGE sql
+IMMUTABLE
+PARALLEL SAFE
+SET search_path = pg_catalog, extensions, public, pg_temp
+AS $$
+  SELECT extensions.digest(data, type);
+$$;
+
+CREATE OR REPLACE FUNCTION public.digest(data text, type text)
+RETURNS bytea
+LANGUAGE sql
+IMMUTABLE
+PARALLEL SAFE
+SET search_path = pg_catalog, extensions, public, pg_temp
+AS $$
+  SELECT extensions.digest(convert_to(data, 'UTF8'), type);
+$$;
+
 -- Enums
 DO $$ BEGIN
   CREATE TYPE public.user_role AS ENUM ('student', 'owner', 'manager', 'admin');

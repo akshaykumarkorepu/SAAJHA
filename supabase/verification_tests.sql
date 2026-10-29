@@ -98,7 +98,7 @@ BEGIN
   -- Safe cleanup of test records so demo data remains pristine
   DELETE FROM public.incidents WHERE booking_id = v_booking_id;
   DELETE FROM public.condition_reports WHERE booking_id = v_booking_id;
-  DELETE FROM public.notifications WHERE body LIKE '%Prusa MK4%' OR body LIKE '%Robotics club%';
+  DELETE FROM public.notifications WHERE body = 'Prusa MK4 3D Printer requested for ' || to_char(v_test_start, 'Mon DD, HH24:MI');
   DELETE FROM public.bookings WHERE id = v_booking_id;
   RAISE NOTICE '  Cleaned up verification test records.';
 
