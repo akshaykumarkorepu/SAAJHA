@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { getBusySlots, getResource, requestBooking, runReadinessCheck } from "@/lib/data";
 import { formatSlot, hourLabel, makeSlot } from "@/lib/slots";
-import type { ReadinessResult, ResourceView, Slot } from "@/lib/types";
+import type { BookingStatus, ReadinessResult, ResourceView, Slot } from "@/lib/types";
 import { shake, transition } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -333,7 +333,7 @@ function BookingPanel({
   const [checkFailed, setCheckFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [settled, setSettled] = useState(false);
-  const [sent, setSent] = useState<{ status: "requested" | "waitlisted"; position?: number; slot: Slot } | null>(null);
+  const [sent, setSent] = useState<{ status: BookingStatus; position?: number; slot: Slot } | null>(null);
   const [purpose, setPurpose] = useState("");
   const [purposeError, setPurposeError] = useState(false);
   const [sending, setSending] = useState(false);

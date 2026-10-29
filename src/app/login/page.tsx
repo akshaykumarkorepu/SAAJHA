@@ -4,6 +4,7 @@ import { getDemoAccounts } from "@/lib/data";
 import { Logo } from "@/components/saajha/logo";
 import { ThemeToggle } from "@/components/saajha/theme";
 import { RolePicker } from "./role-picker";
+import { EmailLoginForm } from "./email-login-form";
 import { TrustFacts } from "./trust-facts";
 
 export const metadata: Metadata = { title: "Log in" };
@@ -44,9 +45,7 @@ export default async function LoginPage() {
             One click, no password. Every account and booking here is fictional.
           </p>
           <RolePicker accounts={accounts} />
-          <p className="mt-8 text-sm text-muted-foreground">
-            Real sign-in with your institute email arrives with the Supabase backend.
-          </p>
+          <EmailLoginForm />
         </div>
       </section>
     </main>

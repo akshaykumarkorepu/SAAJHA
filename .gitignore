@@ -43,3 +43,7 @@ next-env.d.ts
 # internal team notes
 START_HERE.md
 PLAYBOOK.md
+
+!.env.example
+
+supabase/.temp/

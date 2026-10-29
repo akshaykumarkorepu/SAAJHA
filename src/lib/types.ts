@@ -214,3 +214,14 @@ export interface DemoAccount {
   blurb: string;
   profile: Profile;
 }
+
+
+export interface BookingView extends Booking {
+  resource: ResourceView;
+  borrower: Pick<Profile, "id" | "full_name" | "email" | "department" | "roll_no" | "reliability">;
+  condition_reports?: ConditionReport[];
+}
+
+export interface UserBadgeView extends UserBadge {
+  badge: Badge;
+}

@@ -28,6 +28,7 @@ import { PaletteHint } from "@/components/saajha/command-palette";
 import { NAV_BY_ROLE, ROLE_LABEL } from "./nav-config";
 import { NotificationBell } from "./notification-bell";
 import { useSession } from "./session";
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 
 const ROLES = Object.keys(ROLE_LABEL) as DemoRole[];
 
@@ -42,14 +43,20 @@ function initials(name: string) {
 
 function useSwitchRole() {
   const router = useRouter();
-  return (role: DemoRole | null) => {
+  return async (role: DemoRole | null) => {
+    if (role === null && isSupabaseConfigured()) {
+      try {
+        const supabase = createClient();
+        if (supabase) await supabase.auth.signOut();
+      } catch {}
+    }
     setDemoRole(role);
     if (role) track("switched_role");
     if (role) {
       toast.success(`Now viewing as ${ROLE_LABEL[role]}`);
       router.push("/explore");
     } else {
-      toast("Signed out of the demo");
+      toast("Signed out");
       router.push("/login");
     }
   };

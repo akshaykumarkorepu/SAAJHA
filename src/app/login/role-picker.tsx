@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import { toast } from "sonner";
 import { ArrowRight, Building2, FlaskConical, Gavel, GraduationCap, ScrollText, UserRoundX, type LucideIcon } from "lucide-react";
 import { setDemoRole } from "@/lib/demo-session";
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import type { DemoAccount, DemoRole } from "@/lib/types";
 import { fadeUp } from "@/lib/motion";
 
@@ -20,9 +21,29 @@ const ICONS: Record<DemoRole, LucideIcon> = {
 export function RolePicker({ accounts }: { accounts: DemoAccount[] }) {
   const router = useRouter();
 
-  function choose(a: DemoAccount) {
+  async function choose(a: DemoAccount) {
+    if (isSupabaseConfigured()) {
+      try {
+        const supabase = createClient();
+        if (supabase) {
+          const { error } = await supabase.auth.signInWithPassword({
+            email: a.profile.email,
+            password: "Demo@1234",
+          });
+          if (error) {
+            console.warn("Supabase Auth signIn note:", error.message);
+          } else {
+            toast.success(`Supabase Auth Session Active`, {
+              description: `Authenticated as ${a.profile.email}`,
+            });
+          }
+        }
+      } catch (err) {
+        console.warn("Supabase signin attempt failed:", err);
+      }
+    }
     setDemoRole(a.key);
-    toast.success(`Signed in as ${a.profile.full_name}`, { description: `${a.label} (demo account)` });
+    toast.success(`Signed in as ${a.profile.full_name}`, { description: `${a.label}` });
     router.push("/explore");
   }
 
